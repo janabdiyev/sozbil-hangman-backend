@@ -1,0 +1,197 @@
+[
+  {
+    "model": "hangman.gamecategory",
+    "pk": 1,
+    "fields": {
+      "name": "Animals",
+      "slug": "animals",
+      "description": "Animal-related words",
+      "order_position": 1,
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.gamecategory",
+    "pk": 2,
+    "fields": {
+      "name": "Countries",
+      "slug": "countries",
+      "description": "Countries around the world",
+      "order_position": 2,
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.gamecategory",
+    "pk": 3,
+    "fields": {
+      "name": "Food",
+      "slug": "food",
+      "description": "Food and drinks",
+      "order_position": 3,
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "word": "ELEPHANT",
+      "hint": "Large mammal with a trunk",
+      "difficulty": "easy",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "word": "GIRAFFE",
+      "hint": "Tallest land animal",
+      "difficulty": "easy",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 3,
+    "fields": {
+      "category": 1,
+      "word": "PENGUIN",
+      "hint": "Flightless bird that swims",
+      "difficulty": "medium",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 4,
+    "fields": {
+      "category": 1,
+      "word": "CHAMELEON",
+      "hint": "Reptile that changes colors",
+      "difficulty": "hard",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 5,
+    "fields": {
+      "category": 2,
+      "word": "FRANCE",
+      "hint": "Country famous for the Eiffel Tower",
+      "difficulty": "easy",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 6,
+    "fields": {
+      "category": 2,
+      "word": "BRAZIL",
+      "hint": "Largest country in South America",
+      "difficulty": "easy",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 7,
+    "fields": {
+      "category": 2,
+      "word": "AUSTRALIA",
+      "hint": "Island continent with kangaroos",
+      "difficulty": "medium",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 8,
+    "fields": {
+      "category": 2,
+      "word": "SWITZERLAND",
+      "hint": "Alpine country known for chocolate",
+      "difficulty": "hard",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 9,
+    "fields": {
+      "category": 3,
+      "word": "PIZZA",
+      "hint": "Italian dish with cheese and toppings",
+      "difficulty": "easy",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 10,
+    "fields": {
+      "category": 3,
+      "word": "HAMBURGER",
+      "hint": "Popular fast food sandwich",
+      "difficulty": "medium",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 11,
+    "fields": {
+      "category": 3,
+      "word": "SPAGHETTI",
+      "hint": "Long thin Italian pasta",
+      "difficulty": "medium",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  },
+  {
+    "model": "hangman.hangmanword",
+    "pk": 12,
+    "fields": {
+      "category": 3,
+      "word": "CAPPUCCINO",
+      "hint": "Italian coffee drink with foam",
+      "difficulty": "hard",
+      "is_active": true,
+      "created_at": "2026-01-12T08:00:00Z",
+      "updated_at": "2026-01-12T08:00:00Z"
+    }
+  }
+]
