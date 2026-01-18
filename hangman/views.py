@@ -51,7 +51,9 @@ def health_check(request):
 @require_http_methods(["GET"])
 def privacy_policy(request):
     """Serve privacy policy HTML"""
-    file_path = os.path.join(settings.BASE_DIR, 'privacy_policy.html')
+    # Go up one directory from BASE_DIR (which is hangman_project/) to project root
+    project_root = settings.BASE_DIR.parent
+    file_path = os.path.join(project_root, 'privacy_policy.html')
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -60,6 +62,5 @@ def privacy_policy(request):
     except FileNotFoundError:
         return JsonResponse({
             'error': 'Privacy policy not found',
-            'base_dir': str(settings.BASE_DIR),
             'looking_for': file_path
         }, status=404)
