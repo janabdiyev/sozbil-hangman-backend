@@ -1,7 +1,10 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
+from django.http import FileResponse
+from django.conf import settings
 import random
+import os
 from .models import GameCategory, HangmanWord
 
 
@@ -44,3 +47,12 @@ def api_stats(request):
 def health_check(request):
     """Health check endpoint for monitoring"""
     return JsonResponse({'status': 'ok', 'service': 'Hangman API'})
+
+
+@require_http_methods(["GET"])
+def privacy_policy(request):
+    """Serve privacy policy HTML"""
+    file_path = os.path.join(settings.BASE_DIR, 'privacy_policy.html')
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), content_type='text/html')
+    return JsonResponse({'error': 'Privacy policy not found'}, status=404)
