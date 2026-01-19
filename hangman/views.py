@@ -64,3 +64,21 @@ def privacy_policy(request):
             'error': 'Privacy policy not found',
             'looking_for': file_path
         }, status=404)
+
+
+@require_http_methods(["GET"])
+def support_page(request):
+    """Serve support HTML"""
+    # Go up one directory from BASE_DIR (which is hangman_project/) to project root
+    project_root = settings.BASE_DIR.parent
+    file_path = os.path.join(project_root, 'support.html')
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='text/html')
+    except FileNotFoundError:
+        return JsonResponse({
+            'error': 'Support page not found',
+            'looking_for': file_path
+        }, status=404)

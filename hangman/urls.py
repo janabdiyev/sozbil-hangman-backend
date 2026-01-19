@@ -8,4 +8,6 @@ urlpatterns = [
     path('api/stats/', views.api_stats, name='api_stats'),
     path('health/', views.health_check, name='health_check'),
     path('privacy-policy.html', views.privacy_policy, name='privacy_policy'),
+    path('support.html', views.support_page, name='support_page'),
+
 ]
