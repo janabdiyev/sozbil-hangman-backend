@@ -9,14 +9,14 @@ from .models import GameCategory, HangmanWord
 
 @require_http_methods(["GET"])
 def index(request):
-    """Homepage for App Store verification"""
+    """Homepage for SözBil"""
     html = """
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="tk">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MicLab - Karaoke Recording App</title>
+        <title>SözBil - Türkmen Dili Oýuny</title>
         <style>
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -30,10 +30,10 @@ def index(request):
         </style>
     </head>
     <body>
-        <div class="app-icon">🎤</div>
-        <h1>MicLab</h1>
-        <p>Professional karaoke recording app for iOS</p>
-        <p>Transform your device into a professional recording studio with AI-powered vocal enhancement.</p>
+        <div class="app-icon">📚</div>
+        <h1>SözBil</h1>
+        <p>Türkmen dilinde söz tapmaja oýuny</p>
+        <p>Türkmen dilini öwreniň we söz baýlygyňyzy artdyryň!</p>
         <hr>
         <p><small>© 2026 Can Abdiyev</small></p>
     </body>
