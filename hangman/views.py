@@ -8,6 +8,41 @@ from .models import GameCategory, HangmanWord
 
 
 @require_http_methods(["GET"])
+def index(request):
+    """Homepage for App Store verification"""
+    html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>MicLab - Karaoke Recording App</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            h1 { color: #333; }
+            .app-icon { font-size: 60px; margin-bottom: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="app-icon">🎤</div>
+        <h1>MicLab</h1>
+        <p>Professional karaoke recording app for iOS</p>
+        <p>Transform your device into a professional recording studio with AI-powered vocal enhancement.</p>
+        <hr>
+        <p><small>© 2026 Can Abdiyev</small></p>
+    </body>
+    </html>
+    """
+    return HttpResponse(html, content_type='text/html')
+
+
+@require_http_methods(["GET"])
 def api_random_word_all(request):
     """Get a random word from ALL active categories"""
 
