@@ -761,16 +761,17 @@ class _LetterCell extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Clue number — top-left, clearly visible
-            if (clueNum != null)
+            // Clue number — top-left; hidden once a letter is guessed
+            if (clueNum != null && guess.isEmpty)
               Positioned(
-                left: 3,
+                left: 2,
                 top: 2,
+                right: 2,
                 child: Text(
                   '$clueNum',
                   style: TextStyle(
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 25.0,
+                    fontWeight: FontWeight.w900,
                     color: numColor,
                     height: 1.0,
                   ),
