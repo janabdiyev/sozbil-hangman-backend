@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ads="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F6F7FB"
+    android:padding="10dp">
+
+    <!-- Header (compact, clean) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <ImageView
+            android:id="@+id/logoImage"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/logo"
+            android:layout_marginEnd="8dp"
+            android:scaleType="centerInside"
+            android:adjustViewBounds="true"
+            android:contentDescription="Sözbil logo" />
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sözbil"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#111827" />
+    </LinearLayout>
+
+    <!-- MAIN PUZZLE CARD (replaces the flat gray block) -->
+    <LinearLayout
+        android:id="@+id/hangmanCard"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="45"
+        android:orientation="vertical"
+        android:background="@drawable/card_bg"
+        android:padding="14dp"
+        android:gravity="center"
+        android:layout_marginBottom="10dp"
+        android:elevation="2dp">
+
+        <!-- Hangman drawing area -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="60"
+            android:background="@drawable/inner_panel_bg"
+            android:padding="8dp">
+
+            <com.sozbil.app.HangmanView
+                android:id="@+id/hangmanView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <TextView
+                android:id="@+id/gameOverText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="🎉 Bildiň!"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#166534"
+                android:gravity="center"
+                android:padding="16dp"
+                android:background="#E6FFFFFF"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Attempts chip -->
+        <TextView
+            android:id="@+id/attemptsText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="6/6 harp galdy"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#111827"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:background="@drawable/chip_bg"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp" />
+
+        <!-- Word Display (inside the card, with better spacing) -->
+        <TextView
+            android:id="@+id/wordDisplay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="_ _ _ _ _"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:textColor="#111827"
+            android:gravity="center"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:background="@drawable/word_tiles_bg"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="6dp"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="8dp"
+            android:letterSpacing="0.18"
+            android:maxLines="2" />
+
+        <!-- Hint chip -->
+        <TextView
+            android:id="@+id/hintText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ýardam: ..."
+            android:textSize="13sp"
+            android:textColor="#374151"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:background="@drawable/hint_chip_bg"
+            android:layout_gravity="center_horizontal"
+            android:maxLines="2"
+            android:layout_marginTop="6dp" />
+
+    </LinearLayout>
+
+    <!-- Keyboard Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="50"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/keyboardTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Harp saýla"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#374151"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Keyboard grid -->
+        <androidx.gridlayout.widget.GridLayout
+            android:id="@+id/keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="75"
+            ads:columnCount="10"
+            ads:useDefaultMargins="false" />
+
+        <!-- Play Again Button (keep your drawable) -->
+        <Button
+            android:id="@+id/playAgainButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Täzeden oýna"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:textAllCaps="false"
+            android:background="@drawable/rounded_button_green"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:elevation="4dp" />
+
+        <!-- Banner Ad -->
+        <com.google.android.gms.ads.AdView
+            android:id="@+id/bannerAd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            ads:adSize="BANNER"
+            ads:adUnitId="ca-app-pub-7668467791782601/2660755023"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Hidden elements (code still references them) -->
+    <TextView
+        android:id="@+id/gamesRemainingText"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+</LinearLayout>

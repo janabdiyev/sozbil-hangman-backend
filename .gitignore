@@ -1,0 +1,50 @@
+# ── Python / Django ───────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.venv
+venv/
+ENV/
+hangman_backend/db.sqlite3
+hangman_backend/media/
+hangman_backend/staticfiles/
+hangman_backend/hangman_project/__pycache__/
+hangman_backend/hangman/__pycache__/
+
+# ── Flutter ───────────────────────────────────────────────────────────────────
+sozbil_flutter/.dart_tool/
+sozbil_flutter/.flutter-plugins
+sozbil_flutter/.flutter-plugins-dependencies
+sozbil_flutter/.packages
+sozbil_flutter/build/
+sozbil_flutter/pubspec.lock
+
+# ── iOS ───────────────────────────────────────────────────────────────────────
+sozbil_flutter/ios/Pods/
+sozbil_flutter/ios/.symlinks/
+sozbil_flutter/ios/Flutter/Flutter.framework
+sozbil_flutter/ios/Flutter/Flutter.podspec
+sozbil_flutter/ios/Runner.xcworkspace/xcshareddata/
+*.xcuserstate
+
+# ── Android ───────────────────────────────────────────────────────────────────
+sozbil_flutter/android/.gradle/
+sozbil_flutter/android/local.properties
+sozbil_flutter/android/key.properties
+sozbil_flutter/android/app/google-services.json
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+*.DS_Store
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
