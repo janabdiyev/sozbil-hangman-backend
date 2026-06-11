@@ -232,12 +232,23 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
     storage.consumeGame(storage.isSubscribed);
     ref.read(gameLimitProvider.notifier).refresh();
 
-    final pool = List<_NanoPuzzle>.from(_kPuzzles)..shuffle();
+    final pool = List<_NanoPuzzle>.from(_kPuzzles)
+      ..shuffle()
+      ..removeWhere((p) => p == _puzzle); // avoid same puzzle
     final next = pool.first;
     setState(() {
       _loading = false;
       _puzzle = next;
       _cells = List.filled(next.size * next.size, _CellState.empty);
+      _errorCount = 0;
+      _solved = false;
+    });
+  }
+
+  void _replayGame() {
+    if (_puzzle == null) return;
+    setState(() {
+      _cells = List.filled(_puzzle!.size * _puzzle!.size, _CellState.empty);
       _errorCount = 0;
       _solved = false;
     });
@@ -342,7 +353,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      Navigator.pop(context);
+                      _replayGame();
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -350,7 +361,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
                           borderRadius: BorderRadius.circular(12)),
                       side: const BorderSide(color: AppColors.border),
                     ),
-                    child: const Text('Çyk',
+                    child: const Text('Täzeden',
                         style: TextStyle(color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600)),
                   ),
@@ -367,7 +378,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
                           borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text('Täzeden',
+                    child: const Text('Indiki →',
                         style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),

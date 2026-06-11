@@ -769,7 +769,7 @@ class _LetterCell extends StatelessWidget {
                 child: Text(
                   '$clueNum',
                   style: TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 11.0,
                     fontWeight: FontWeight.w800,
                     color: numColor,
                     height: 1.0,
