@@ -545,7 +545,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
 
   Widget _buildGrid(double cellSize) {
     final n = _puzzle!.size;
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.textPrimary, width: 2),
       ),

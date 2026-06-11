@@ -302,10 +302,13 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
 
   void _fitGrid() {
     if (!mounted) return;
-    // Use more margin so the grid edges don't touch the screen
-    final availW = MediaQuery.of(context).size.width - 64;
-    final scale = (availW / (_kGS * _kCS)).clamp(0.4, 1.2);
-    _transformCtrl.value = Matrix4.identity()..scale(scale);
+    final screenW = MediaQuery.of(context).size.width;
+    final scale = ((screenW - 64) / (_kGS * _kCS)).clamp(0.4, 1.2);
+    final scaledPx = _kGS * _kCS * scale;
+    final tx = (screenW - scaledPx) / 2.0;
+    _transformCtrl.value = Matrix4.identity()
+      ..translate(tx, 24.0)
+      ..scale(scale);
   }
 
   void _newGame(List<WordModel> words) {
@@ -494,20 +497,19 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             color: AppColors.background,
             child: InteractiveViewer(
               transformationController: _transformCtrl,
+              constrained: false,
               minScale: 0.3,
               maxScale: 3.0,
-              boundaryMargin: const EdgeInsets.all(80),
-              child: Center(
-                child: GestureDetector(
-                  onTapUp: _onTap,
-                  child: CustomPaint(
-                    size: const Size(_kGS * _kCS, _kGS * _kCS),
-                    painter: _GridPainter(
-                      puzzle: _puzzle!,
-                      guesses: Map.of(_guesses),
-                      selectedCells: w?.cells.toSet() ?? {},
-                      activeCell: ac,
-                    ),
+              boundaryMargin: const EdgeInsets.all(double.infinity),
+              child: GestureDetector(
+                onTapUp: _onTap,
+                child: CustomPaint(
+                  size: const Size(_kGS * _kCS, _kGS * _kCS),
+                  painter: _GridPainter(
+                    puzzle: _puzzle!,
+                    guesses: Map.of(_guesses),
+                    selectedCells: w?.cells.toSet() ?? {},
+                    activeCell: ac,
                   ),
                 ),
               ),

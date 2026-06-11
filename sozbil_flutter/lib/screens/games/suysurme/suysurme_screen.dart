@@ -40,7 +40,7 @@ class _SuysurmeScreenState extends ConsumerState<SuysurmeScreen> {
   void initState() {
     super.initState();
     _rewardedAd.load();
-    _loadPuzzle();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPuzzle());
   }
 
   @override
