@@ -68,7 +68,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
 
     try {
       final api = ref.read(apiServiceProvider);
-      final images = await api.getPuzzleImages('jigsaw');
+      final images = await api.getPuzzleImages('puzzle');
       final valid = images.where((e) => e.imageUrl != null).toList();
 
       if (valid.isEmpty) {

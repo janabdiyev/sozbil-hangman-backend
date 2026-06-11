@@ -8,8 +8,8 @@ import '../../../core/services/rewarded_ad_service.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../../../providers/app_providers.dart';
 
-// ── All pairs (12 pairs = 24 cards = 6 rows × 4) ──────────────────────────────
-const _allPairs = [
+// ── Full pair pool — 12 random pairs picked each game ─────────────────────────
+const _pairPool = [
   ('🦅', 'BÜRGÜT'),
   ('☀️', 'GÜN'),
   ('🏔️', 'DAG'),
@@ -18,11 +18,21 @@ const _allPairs = [
   ('⭐', 'ÝYLDYZ'),
   ('💧', 'SUW'),
   ('🏠', 'ÖÝ'),
-  ('🦁', 'ARYSLAN'),
+  ('🦁', 'ARSLAN'),
   ('🌲', 'AGAÇ'),
   ('🐟', 'BALYK'),
   ('🔥', 'ALAW'),
+  ('🐎', 'AT'),
+  ('🌙', 'AÝ'),
+  ('❄️', 'GAR'),
+  ('💨', 'ÝEL'),
+  ('🍎', 'ALMA'),
+  ('🐦', 'GUŞ'),
+  ('❤️', 'ÝÜREK'),
+  ('⚡', 'ÝYLDYRYM'),
 ];
+
+const _pairsPerGame = 12;
 
 class YatkeslikScreen extends ConsumerStatefulWidget {
   const YatkeslikScreen({super.key});
@@ -83,8 +93,9 @@ class _YatkeslikScreenState extends ConsumerState<YatkeslikScreen> {
   }
 
   void _initGame() {
-    // Use all 12 pairs
-    final pairs = List.of(_allPairs)..shuffle();
+    // Pick _pairsPerGame random pairs from the full pool
+    final pool = List.of(_pairPool)..shuffle();
+    final pairs = pool.take(_pairsPerGame).toList();
     final cards = <_Card>[];
     for (int i = 0; i < pairs.length; i++) {
       cards.add(_Card(id: i * 2,     pairId: i, isEmoji: true,  emoji: pairs[i].$1, word: pairs[i].$2));
@@ -165,7 +176,7 @@ class _YatkeslikScreenState extends ConsumerState<YatkeslikScreen> {
         playerUuid: uuid,
         gameType: 'yatkeslik',
         won: true,
-        wrongGuesses: (_moves - _allPairs.length).clamp(0, 99),
+        wrongGuesses: (_moves - _pairsPerGame).clamp(0, 99),
       );
       ref.read(playerProvider.notifier).refresh();
     } catch (_) {}
@@ -236,7 +247,7 @@ class _YatkeslikScreenState extends ConsumerState<YatkeslikScreen> {
                 child: Row(
                   children: [
                     Text(
-                      '${_matched.length ~/ 2} / ${_allPairs.length} jübüt',
+                      '${_matched.length ~/ 2} / ${_pairsPerGame} jübüt',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -284,7 +295,7 @@ class _YatkeslikScreenState extends ConsumerState<YatkeslikScreen> {
   }
 
   Widget _buildWin() {
-    final score = (_allPairs.length * 100 - _moves * 2).clamp(0, 1200);
+    final score = (_pairsPerGame * 100 - _moves * 2).clamp(0, 1200);
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -347,12 +358,6 @@ class _CardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Scale emoji/text relative to card size
-    final emojiFontSize = cardSize * 0.42;
-    final wordFontSize = card.word.length > 6
-        ? cardSize * 0.18
-        : cardSize * 0.22;
-
     return GestureDetector(
       onTap: isFlipped ? null : onTap,
       child: AnimatedContainer(
@@ -379,18 +384,23 @@ class _CardWidget extends StatelessWidget {
         child: Center(
           child: isFlipped
               ? (card.isEmoji
-                  ? Text(card.emoji, style: TextStyle(fontSize: emojiFontSize))
+                  ? Text(card.emoji,
+                      style: TextStyle(fontSize: cardSize * 0.42))
                   : Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Text(
-                        card.word,
-                        style: TextStyle(
-                          fontSize: wordFontSize,
-                          fontWeight: FontWeight.w800,
-                          color: isMatched ? AppColors.success : AppColors.textPrimary,
-                          height: 1.1,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          card.word,
+                          style: TextStyle(
+                            fontSize: cardSize * 0.22,
+                            fontWeight: FontWeight.w800,
+                            color: isMatched
+                                ? AppColors.success
+                                : AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ))
               : Text(

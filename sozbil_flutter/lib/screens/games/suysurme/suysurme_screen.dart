@@ -61,7 +61,7 @@ class _SuysurmeScreenState extends ConsumerState<SuysurmeScreen> {
     setState(() { _loading = true; _error = null; _solved = false; _showHint = false; });
 
     try {
-      final images = await ref.read(apiServiceProvider).getPuzzleImages('sliding');
+      final images = await ref.read(apiServiceProvider).getPuzzleImages('puzzle');
       final valid = images.where((e) => e.imageUrl != null).toList();
 
       if (valid.isEmpty) {

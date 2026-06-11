@@ -198,10 +198,11 @@ class NanogramScreen extends ConsumerStatefulWidget {
 }
 
 class _NanogramScreenState extends ConsumerState<NanogramScreen> {
-  late _NanoPuzzle _puzzle;
-  late List<_CellState> _cells;
+  _NanoPuzzle? _puzzle;
+  List<_CellState> _cells = [];
   int _errorCount = 0;
   bool _solved = false;
+  bool _loading = true;
 
   final _rewardedAd = RewardedAdService();
 
@@ -209,7 +210,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
   void initState() {
     super.initState();
     _rewardedAd.load();
-    _startGame();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startGame());
   }
 
   @override
@@ -232,9 +233,11 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
     ref.read(gameLimitProvider.notifier).refresh();
 
     final pool = List<_NanoPuzzle>.from(_kPuzzles)..shuffle();
+    final next = pool.first;
     setState(() {
-      _puzzle = pool.first;
-      _cells = List.filled(_puzzle.size * _puzzle.size, _CellState.empty);
+      _loading = false;
+      _puzzle = next;
+      _cells = List.filled(next.size * next.size, _CellState.empty);
       _errorCount = 0;
       _solved = false;
     });
@@ -243,26 +246,25 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
   // ── Interaction ────────────────────────────────────────────────────────────
 
   void _onTap(int idx) {
-    if (_solved) return;
+    final p = _puzzle;
+    if (_solved || p == null) return;
     setState(() {
       if (_cells[idx] == _CellState.filled) {
         _cells[idx] = _CellState.empty;
       } else if (_cells[idx] == _CellState.empty) {
         _cells[idx] = _CellState.filled;
-        if (!_puzzle.grid[idx]) _errorCount++;
-        _checkWin();
-      }
-      // tapping a marked cell switches it to filled
-      else if (_cells[idx] == _CellState.marked) {
+        if (!p.grid[idx]) _errorCount++;
+        _checkWin(p);
+      } else if (_cells[idx] == _CellState.marked) {
         _cells[idx] = _CellState.filled;
-        if (!_puzzle.grid[idx]) _errorCount++;
-        _checkWin();
+        if (!p.grid[idx]) _errorCount++;
+        _checkWin(p);
       }
     });
   }
 
   void _onLongPress(int idx) {
-    if (_solved) return;
+    if (_solved || _puzzle == null) return;
     if (_cells[idx] == _CellState.filled) return;
     setState(() {
       _cells[idx] = _cells[idx] == _CellState.marked
@@ -271,9 +273,9 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
     });
   }
 
-  void _checkWin() {
+  void _checkWin(_NanoPuzzle p) {
     for (int i = 0; i < _cells.length; i++) {
-      if (_puzzle.grid[i] != (_cells[i] == _CellState.filled)) return;
+      if (p.grid[i] != (_cells[i] == _CellState.filled)) return;
     }
     _solved = true;
     _onSolved();
@@ -381,6 +383,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = _puzzle;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -388,7 +391,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: Text(
-          _solved ? _puzzle.title : 'Nanogram',
+          (!_loading && _solved && p != null) ? p.title : 'Nanogram',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
               color: AppColors.textPrimary),
         ),
@@ -398,15 +401,21 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(child: _ErrorBadge(count: _errorCount)),
-          ),
+          if (!_loading)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(child: _ErrorBadge(count: _errorCount)),
+            ),
         ],
       ),
       body: Column(
         children: [
-          Expanded(child: _buildBody()),
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary))
+                : _buildBody(),
+          ),
           const BannerAdWidget(),
         ],
       ),
@@ -414,15 +423,16 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
   }
 
   Widget _buildBody() {
+    final p = _puzzle!;
     return LayoutBuilder(builder: (context, constraints) {
-      final rowClues = _puzzle.rowClues;
-      final colClues = _puzzle.colClues;
+      final rowClues = p.rowClues;
+      final colClues = p.colClues;
 
       final maxRowClueLen = rowClues.map((c) => c.length).reduce(max);
       final maxColClueLen = colClues.map((c) => c.length).reduce(max);
 
-      final totalCols = maxRowClueLen + _puzzle.size;
-      final totalRows = maxColClueLen + _puzzle.size;
+      final totalCols = maxRowClueLen + p.size;
+      final totalRows = maxColClueLen + p.size;
 
       final availW = constraints.maxWidth - 32;
       final availH = constraints.maxHeight - 72;
@@ -431,7 +441,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
 
       final clueW = maxRowClueLen * cellSize;
       final clueH = maxColClueLen * cellSize;
-      final gridPx = _puzzle.size * cellSize;
+      final gridPx = p.size * cellSize;
 
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -457,7 +467,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
                       height: clueH,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
-                        children: List.generate(_puzzle.size, (c) {
+                        children: List.generate(p.size, (c) {
                           return SizedBox(
                             width: cellSize,
                             height: clueH,
@@ -488,7 +498,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
                       width: clueW,
                       height: gridPx,
                       child: Column(
-                        children: List.generate(_puzzle.size, (r) {
+                        children: List.generate(p.size, (r) {
                           return SizedBox(
                             width: clueW,
                             height: cellSize,
@@ -534,7 +544,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
   }
 
   Widget _buildGrid(double cellSize) {
-    final n = _puzzle.size;
+    final n = _puzzle!.size;
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.textPrimary, width: 2),
@@ -545,7 +555,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
             children: List.generate(n, (c) {
               final idx = r * n + c;
               final state = _cells[idx];
-              final solution = _puzzle.grid[idx];
+              final solution = _puzzle!.grid[idx];
 
               Color bg;
               Widget? inner;
@@ -603,11 +613,12 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
   }
 
   Widget _buildDifficultyBadge() {
-    final d = _puzzle.difficulty;
+    final p = _puzzle!;
+    final d = p.difficulty;
     final color = d == 'easy' ? AppColors.success : AppColors.accent;
     final label = d == 'easy'
-        ? 'Aňsat  •  ${_puzzle.size}×${_puzzle.size}'
-        : 'Orta  •  ${_puzzle.size}×${_puzzle.size}';
+        ? 'Aňsat  •  ${p.size}×${p.size}'
+        : 'Orta  •  ${p.size}×${p.size}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(

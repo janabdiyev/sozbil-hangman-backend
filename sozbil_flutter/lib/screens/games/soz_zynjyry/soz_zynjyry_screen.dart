@@ -32,12 +32,13 @@ class _SozZynjyryScreenState extends ConsumerState<SozZynjyryScreen> {
   bool _gameOver = false;
   String? _errorMsg;
   Timer? _timer;
+  late final Future<Set<String>> _dictFuture;
 
-  @override
   @override
   void initState() {
     super.initState();
     _rewardedAd.load();
+    _dictFuture = _loadDictionary();
   }
 
   @override
@@ -204,7 +205,7 @@ class _SozZynjyryScreenState extends ConsumerState<SozZynjyryScreen> {
         ],
       ),
       body: FutureBuilder<Set<String>>(
-        future: _loadDictionary(),
+        future: _dictFuture,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));

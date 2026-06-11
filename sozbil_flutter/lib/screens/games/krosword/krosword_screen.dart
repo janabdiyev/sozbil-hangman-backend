@@ -302,8 +302,9 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
 
   void _fitGrid() {
     if (!mounted) return;
-    final availW = MediaQuery.of(context).size.width - 32;
-    final scale = (availW / (_kGS * _kCS)).clamp(0.5, 1.2);
+    // Use more margin so the grid edges don't touch the screen
+    final availW = MediaQuery.of(context).size.width - 64;
+    final scale = (availW / (_kGS * _kCS)).clamp(0.4, 1.2);
     _transformCtrl.value = Matrix4.identity()..scale(scale);
   }
 
@@ -493,9 +494,9 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             color: AppColors.background,
             child: InteractiveViewer(
               transformationController: _transformCtrl,
-              minScale: 0.4,
+              minScale: 0.3,
               maxScale: 3.0,
-              boundaryMargin: const EdgeInsets.all(64),
+              boundaryMargin: const EdgeInsets.all(80),
               child: Center(
                 child: GestureDetector(
                   onTapUp: _onTap,
@@ -518,31 +519,51 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
         if (w != null)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: const BoxDecoration(
+            padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+            decoration: BoxDecoration(
               color: AppColors.surface,
-              border:
-                  Border(top: BorderSide(color: AppColors.borderLight)),
+              border: const Border(
+                  top: BorderSide(color: AppColors.border, width: 1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, -3),
+                ),
+              ],
             ),
             child: Row(
               children: [
+                // Colored left accent strip
+                Container(
+                  width: 4,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(2),
+                      bottomRight: Radius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(6),
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${w.num}${w.across ? 'A' : 'D'}',
                     style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     w.hint.isNotEmpty ? w.hint : '— — —',
@@ -550,6 +571,7 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
+                      height: 1.35,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -627,8 +649,10 @@ class _GridPainter extends CustomPainter {
     this.activeCell,
   });
 
-  static const _kBlack = Color(0xFF1E1E1E);
-  static const _kGrid = Color(0xFFB0AEAA);
+  // Deep purple for black (blocked) cells — matches app primary colour family
+  static const _kBlack = Color(0xFF2A2850);
+  // Grid line colour — subtle warm grey
+  static const _kGrid = Color(0xFFD3D1C7);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -637,7 +661,7 @@ class _GridPainter extends CustomPainter {
     final stroke = Paint()
       ..color = _kGrid
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 0.7;
 
     for (int r = 0; r < _kGS; r++) {
       for (int c = 0; c < _kGS; c++) {
@@ -655,9 +679,9 @@ class _GridPainter extends CustomPainter {
 
         Color bg;
         if (pos == activeCell) {
-          bg = AppColors.primary.withOpacity(0.28);
+          bg = AppColors.primary.withOpacity(0.40);
         } else if (selectedCells.contains(pos)) {
-          bg = AppColors.primaryLight;
+          bg = const Color(0xFFEEEDFE); // primaryLight
         } else if (guess.isNotEmpty && guess == correct) {
           bg = AppColors.successLight;
         } else {
@@ -668,11 +692,11 @@ class _GridPainter extends CustomPainter {
         canvas.drawRect(rect, fill);
         canvas.drawRect(rect, stroke);
 
-        // Clue number
+        // Clue number — purple for visibility
         final num = puzzle.numbers[pos];
         if (num != null) {
-          _text(canvas, '$num', Offset(c * cs + 2.5, r * cs + 1.5), 8,
-              AppColors.textSecondary, FontWeight.w600);
+          _text(canvas, '$num', Offset(c * cs + 2.5, r * cs + 1.5), 9,
+              AppColors.primary, FontWeight.w700);
         }
 
         // Guessed letter
@@ -681,14 +705,24 @@ class _GridPainter extends CustomPainter {
             canvas,
             guess,
             Offset(c * cs + cs / 2, r * cs + cs / 2 + 1),
-            cs * 0.48,
+            cs * 0.50,
             guess == correct ? AppColors.success : AppColors.textPrimary,
-            FontWeight.w700,
+            FontWeight.w800,
             center: true,
           );
         }
       }
     }
+
+    // Outer border — matches the deep purple theme
+    final outerPaint = Paint()
+      ..color = _kBlack
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, _kGS * cs, _kGS * cs),
+      outerPaint,
+    );
   }
 
   void _text(Canvas canvas, String s, Offset pos, double size, Color color,
