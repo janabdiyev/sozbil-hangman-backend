@@ -1,72 +1,126 @@
 from django.contrib import admin
-from .models import GameCategory, HangmanWord
-
-@admin.register(GameCategory)
-class GameCategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'word_count', 'order_position', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'description']
-    prepopulated_fields = {'slug': ('name',)}
-    ordering = ['order_position', 'name']
-    list_editable = ['order_position', 'is_active']
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'description', 'icon_image')
-        }),
-        ('Settings', {
-            'fields': ('order_position', 'is_active')
-        }),
-    )
+from django.utils.html import format_html
+from .models import (
+    HangmanWord, PuzzleImage, ExternalApp,
+    Player, GameSession, DailyWord, Achievement, PlayerAchievement, ChatMessage
+)
 
 
 @admin.register(HangmanWord)
 class HangmanWordAdmin(admin.ModelAdmin):
-    list_display = ['word', 'category', 'difficulty', 'hint_preview', 'is_active', 'created_at']
-    list_filter = ['category', 'difficulty', 'is_active', 'created_at']
+    list_display = ['word', 'difficulty', 'hint_preview', 'is_active', 'created_at']
+    list_filter = ['difficulty', 'is_active']
     search_fields = ['word', 'hint']
-    ordering = ['category', 'word']
+    ordering = ['word']
     list_editable = ['difficulty', 'is_active']
-    
+
     fieldsets = (
-        ('Word Information', {
-            'fields': ('category', 'word', 'hint')
-        }),
-        ('Settings', {
-            'fields': ('difficulty', 'is_active')
-        }),
+        ('Word', {'fields': ('word', 'hint')}),
+        ('Settings', {'fields': ('difficulty', 'is_active')}),
     )
-    
+
     def hint_preview(self, obj):
-        """Show first 50 chars of hint"""
-        if obj.hint:
-            return obj.hint[:50] + '...' if len(obj.hint) > 50 else obj.hint
-        return '-'
+        return obj.hint[:60] + '...' if obj.hint and len(obj.hint) > 60 else obj.hint or '—'
     hint_preview.short_description = 'Hint'
-    
-    actions = ['make_easy', 'make_medium', 'make_hard', 'activate_words', 'deactivate_words']
-    
-    def make_easy(self, request, queryset):
-        queryset.update(difficulty='easy')
-        self.message_user(request, f'{queryset.count()} words marked as Easy')
+
+    actions = ['make_easy', 'make_medium', 'make_hard', 'activate', 'deactivate']
+
+    def make_easy(self, request, qs): qs.update(difficulty='easy')
     make_easy.short_description = 'Mark as Easy'
-    
-    def make_medium(self, request, queryset):
-        queryset.update(difficulty='medium')
-        self.message_user(request, f'{queryset.count()} words marked as Medium')
+
+    def make_medium(self, request, qs): qs.update(difficulty='medium')
     make_medium.short_description = 'Mark as Medium'
-    
-    def make_hard(self, request, queryset):
-        queryset.update(difficulty='hard')
-        self.message_user(request, f'{queryset.count()} words marked as Hard')
+
+    def make_hard(self, request, qs): qs.update(difficulty='hard')
     make_hard.short_description = 'Mark as Hard'
-    
-    def activate_words(self, request, queryset):
-        queryset.update(is_active=True)
-        self.message_user(request, f'{queryset.count()} words activated')
-    activate_words.short_description = 'Activate selected words'
-    
-    def deactivate_words(self, request, queryset):
-        queryset.update(is_active=False)
-        self.message_user(request, f'{queryset.count()} words deactivated')
-    deactivate_words.short_description = 'Deactivate selected words'
+
+    def activate(self, request, qs): qs.update(is_active=True)
+    activate.short_description = 'Activate'
+
+    def deactivate(self, request, qs): qs.update(is_active=False)
+    deactivate.short_description = 'Deactivate'
+
+
+@admin.register(PuzzleImage)
+class PuzzleImageAdmin(admin.ModelAdmin):
+    list_display = ['title', 'game_type', 'difficulty', 'image_preview', 'is_active']
+    list_filter = ['game_type', 'difficulty', 'is_active']
+    search_fields = ['title']
+    list_editable = ['difficulty', 'is_active']
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="height:40px;border-radius:4px;">', obj.image.url)
+        return '—'
+    image_preview.short_description = 'Preview'
+
+
+@admin.register(ExternalApp)
+class ExternalAppAdmin(admin.ModelAdmin):
+    list_display = ['name', 'logo_preview', 'ios_url', 'android_url', 'order_position', 'is_active']
+    list_editable = ['order_position', 'is_active']
+
+    def logo_preview(self, obj):
+        if obj.logo:
+            return format_html('<img src="{}" style="height:40px;border-radius:4px;">', obj.logo.url)
+        return '—'
+    logo_preview.short_description = 'Logo'
+
+
+@admin.register(Player)
+class PlayerAdmin(admin.ModelAdmin):
+    list_display = ['display_name', 'location', 'avatar_key', 'xp', 'level',
+                    'streak_days', 'last_active', 'created_at']
+    list_filter = ['level']
+    search_fields = ['display_name', 'location']
+    ordering = ['-xp']
+    readonly_fields = ['uuid', 'xp', 'level', 'streak_days', 'longest_streak',
+                       'last_active', 'last_streak_date', 'created_at']
+
+
+@admin.register(GameSession)
+class GameSessionAdmin(admin.ModelAdmin):
+    list_display = ['player', 'game_type', 'word', 'won', 'wrong_guesses', 'score', 'played_at']
+    list_filter = ['game_type', 'won', 'played_at']
+    search_fields = ['player__display_name']
+    ordering = ['-played_at']
+    readonly_fields = ['player', 'game_type', 'word', 'won', 'wrong_guesses', 'score', 'played_at']
+
+
+@admin.register(DailyWord)
+class DailyWordAdmin(admin.ModelAdmin):
+    list_display = ['date', 'word']
+    ordering = ['-date']
+    date_hierarchy = 'date'
+
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = ['icon', 'name', 'name_tk', 'condition_type', 'condition_value', 'xp_reward', 'is_active']
+    list_editable = ['xp_reward', 'is_active']
+    list_filter = ['condition_type', 'is_active']
+
+
+@admin.register(PlayerAchievement)
+class PlayerAchievementAdmin(admin.ModelAdmin):
+    list_display = ['player', 'achievement', 'earned_at']
+    list_filter = ['achievement']
+    ordering = ['-earned_at']
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['player', 'message_preview', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['player__display_name', 'message']
+    ordering = ['-created_at']
+    readonly_fields = ['player', 'message', 'created_at']
+
+    def message_preview(self, obj):
+        return obj.message[:80] + '...' if len(obj.message) > 80 else obj.message
+    message_preview.short_description = 'Message'
+
+
+admin.site.site_header = 'Sözbil Platform Admin'
+admin.site.site_title = 'Sözbil Admin'
+admin.site.index_title = 'Platform Management'
