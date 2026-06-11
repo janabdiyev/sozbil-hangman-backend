@@ -259,7 +259,7 @@ class _JelladScreenState extends ConsumerState<JelladScreen>
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'Ýardam: ${_word!.hint}',
-              style: const TextStyle(fontSize: 15.6, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 17.9, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ),
