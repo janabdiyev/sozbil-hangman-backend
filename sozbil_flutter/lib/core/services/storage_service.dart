@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -61,7 +62,7 @@ class StorageService {
   }
 
   int getRemainingGames(bool isSubscribed, int dailyLimit) {
-    if (isSubscribed) return 999999;
+    if (isSubscribed || kDebugMode) return 999999;
     _resetDailyIfNeeded();
     final played = _prefs.getInt(_keyDailyGamesPlayed) ?? 0;
     final reward = _prefs.getInt(_keyRewardGamesRemaining) ?? 0;

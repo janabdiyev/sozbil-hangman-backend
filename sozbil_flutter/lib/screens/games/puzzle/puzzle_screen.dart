@@ -39,7 +39,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
   void initState() {
     super.initState();
     _rewardedAd.load();
-    _loadPuzzle();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPuzzle());
   }
 
   @override

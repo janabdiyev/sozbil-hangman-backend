@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +11,8 @@ import '../../../models/word.dart';
 import '../../../providers/app_providers.dart';
 
 // ── Grid constants ─────────────────────────────────────────────────────────────
-const _kGS = 15; // grid size (15×15)
-const _kCS = 36.0; // cell size px
+const _kGS = 15;    // grid size (15×15)
+const _kCS = 40.0;  // cell slot size px (tile visual = _kCS - 4)
 const _kMinWords = 6;
 const _kMaxWords = 14;
 
@@ -65,9 +67,7 @@ class _Puzzle {
         .toList();
     if (candidates.isEmpty) return null;
 
-    // raw[r][c] = letter placed there (null = empty/black)
     final raw = List.generate(_kGS, (_) => List<String?>.filled(_kGS, null));
-    // Track which direction(s) occupy each cell — prevents parallel word overlap
     final acrossSet = <(int, int)>{};
     final downSet = <(int, int)>{};
     final placed = <_Word>[];
@@ -146,15 +146,6 @@ class _Puzzle {
     return false;
   }
 
-  /// Standard crossword placement rules:
-  /// 1. Word must fit within the grid bounds.
-  /// 2. No letter immediately before the start or after the end (no extensions).
-  /// 3. Every occupied cell either matches the existing letter exactly (intersection)
-  ///    OR is empty with no adjacent parallel letters (no touching parallel words).
-  /// 4. An intersection is only valid if the existing letter was placed by a word
-  ///    going in the OPPOSITE direction — two parallel words may never share a cell,
-  ///    even when letters match.
-  /// 5. Must have at least one intersection with an existing word.
   static bool _canPlace(
     List<List<String?>> raw,
     Set<(int, int)> acrossSet,
@@ -166,10 +157,8 @@ class _Puzzle {
   ) {
     final len = word.length;
 
-    // ── Bounds ────────────────────────────────────────────────────────────────
     if (across) {
       if (r0 < 0 || r0 >= _kGS || c0 < 0 || c0 + len > _kGS) return false;
-      // No extension: cells immediately before/after must be empty
       if (c0 > 0 && raw[r0][c0 - 1] != null) return false;
       if (c0 + len < _kGS && raw[r0][c0 + len] != null) return false;
     } else {
@@ -185,22 +174,11 @@ class _Puzzle {
       final ex = raw[r][c];
 
       if (ex != null) {
-        // Cell already has a letter — must be an exact match
         if (ex != word[i]) return false;
-
-        // ── Rule 4: parallel overlap is illegal ──────────────────────────────
-        // The existing letter must have been placed by a word going the OTHER
-        // direction. If a same-direction word already owns this cell, reject.
         if (across && acrossSet.contains((r, c))) return false;
         if (!across && downSet.contains((r, c))) return false;
-
         intersections++;
       } else {
-        // ── Rule 3: no adjacent parallel words touching ──────────────────────
-        // For a horizontal word, the cells directly above and below each
-        // non-intersection cell must be empty (otherwise we'd create two
-        // parallel horizontal words that share a row without crossing).
-        // For a vertical word, check left and right.
         if (across) {
           if (r > 0 && raw[r - 1][c] != null) return false;
           if (r + 1 < _kGS && raw[r + 1][c] != null) return false;
@@ -211,7 +189,6 @@ class _Puzzle {
       }
     }
 
-    // Must cross at least one existing word
     return intersections >= 1;
   }
 
@@ -281,9 +258,7 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             ref.read(gameLimitProvider.notifier).refresh();
             setState(() => _started = true);
           },
-          onFailed: () {
-            if (mounted) Navigator.pop(context);
-          },
+          onFailed: () { if (mounted) Navigator.pop(context); },
         );
         return;
       }
@@ -301,18 +276,37 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _fitGrid());
   }
 
+  // Fit the ACTUAL bounding box of letter cells to the viewport — nothing cut off.
   void _fitGrid() {
-    if (!mounted) return;
-    final w = _viewportSize.width > 0
-        ? _viewportSize.width
-        : MediaQuery.of(context).size.width;
-    final h = _viewportSize.height > 0 ? _viewportSize.height : 560.0;
-    // Show ~12 of 15 columns — bigger visible cells, user pans to see edges
-    final scale = (w / (12.0 * _kCS)).clamp(0.5, 1.5);
-    final scaledPx = _kGS * _kCS * scale;
-    final tx = (w - scaledPx) / 2.0;
-    final rawTy = (h - scaledPx) / 2.0;
-    final ty = rawTy < 32.0 ? 32.0 : rawTy;
+    if (!mounted || _puzzle == null || _puzzle!.letters.isEmpty) return;
+    final p = _puzzle!;
+
+    int minR = _kGS, maxR = 0, minC = _kGS, maxC = 0;
+    for (final pos in p.letters.keys) {
+      final r = pos.$1; final c = pos.$2;
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+      if (c < minC) minC = c;
+      if (c > maxC) maxC = c;
+    }
+
+    final contentCols = (maxC - minC + 1).toDouble();
+    final contentRows = (maxR - minR + 1).toDouble();
+
+    final vw = _viewportSize.width > 0 ? _viewportSize.width : MediaQuery.of(context).size.width;
+    final vh = _viewportSize.height > 0 ? _viewportSize.height : 520.0;
+
+    const padding = 24.0;
+    final scaleX = (vw - padding * 2) / (contentCols * _kCS);
+    final scaleY = (vh - padding * 2) / (contentRows * _kCS);
+    final scale = min(scaleX, scaleY).clamp(0.4, 2.0);
+
+    // Center the content bounding box in the viewport
+    final scaledW = contentCols * _kCS * scale;
+    final scaledH = contentRows * _kCS * scale;
+    final tx = (vw - scaledW) / 2 - minC * _kCS * scale;
+    final ty = (vh - scaledH) / 2 - minR * _kCS * scale;
+
     _transformCtrl.value = Matrix4.identity()
       ..translate(tx, ty)
       ..scale(scale);
@@ -337,13 +331,9 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
 
   // ── Interaction ──────────────────────────────────────────────────────────────
 
-  void _onTap(TapUpDetails d) {
+  void _onCellTap(int r, int c) {
     final p = _puzzle;
     if (p == null) return;
-    final r = (d.localPosition.dy / _kCS).floor();
-    final c = (d.localPosition.dx / _kCS).floor();
-    if (r < 0 || r >= _kGS || c < 0 || c >= _kGS) return;
-    if (!p.letters.containsKey((r, c))) return;
 
     HapticFeedback.selectionClick();
     final wordsHere = [
@@ -449,6 +439,12 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
         title: const Text('Krosword'),
         backgroundColor: AppColors.surface,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           if (_puzzle != null)
             Padding(
@@ -467,8 +463,8 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
         ],
       ),
       body: wordsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary)),
         error: (_, __) =>
             _ErrorView(onRetry: () => ref.invalidate(allWordsProvider)),
         data: (words) {
@@ -493,34 +489,62 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
   }
 
   Widget _buildGame(List<WordModel> words) {
-    final w = _selectedWord;
+    final p = _puzzle!;
+    final selWord = _selectedWord;
     final ac = _activeCell;
+    final selectedCells = selWord?.cells.toSet() ?? <(int, int)>{};
 
     return Column(
       children: [
-        // ── Grid ──────────────────────────────────────────────────────────────
+        // ── Grid ────────────────────────────────────────────────────────────
         Expanded(
           child: LayoutBuilder(
             builder: (_, box) {
               _viewportSize = box.biggest;
               return Container(
-                color: AppColors.background,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2A2850), Color(0xFF3F3C92)],
+                  ),
+                ),
                 child: InteractiveViewer(
                   transformationController: _transformCtrl,
                   constrained: false,
                   minScale: 0.3,
-                  maxScale: 3.0,
+                  maxScale: 3.5,
                   boundaryMargin: const EdgeInsets.all(double.infinity),
-                  child: GestureDetector(
-                    onTapUp: _onTap,
-                    child: CustomPaint(
-                      size: const Size(_kGS * _kCS, _kGS * _kCS),
-                      painter: _GridPainter(
-                        puzzle: _puzzle!,
-                        guesses: Map.of(_guesses),
-                        selectedCells: w?.cells.toSet() ?? {},
-                        activeCell: ac,
-                      ),
+                  child: SizedBox(
+                    width: _kGS * _kCS,
+                    height: _kGS * _kCS,
+                    child: Stack(
+                      children: [
+                        // Background tap → deselect word / dismiss keyboard
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () =>
+                              setState(() => _selectedWordIdx = -1),
+                          child: const SizedBox.expand(),
+                        ),
+                        // Letter cells
+                        for (final entry in p.letters.entries)
+                          Positioned(
+                            left: entry.key.$2 * _kCS + 2,
+                            top: entry.key.$1 * _kCS + 2,
+                            width: _kCS - 4,
+                            height: _kCS - 4,
+                            child: _LetterCell(
+                              clueNum: p.numbers[entry.key],
+                              guess: _guesses[entry.key] ?? '',
+                              correct: entry.value,
+                              isActive: entry.key == ac,
+                              isSelected: selectedCells.contains(entry.key),
+                              onTap: () =>
+                                  _onCellTap(entry.key.$1, entry.key.$2),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -529,8 +553,8 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
           ),
         ),
 
-        // ── Clue bar ───────────────────────────────────────────────────────────
-        if (w != null)
+        // ── Clue bar ──────────────────────────────────────────────────────
+        if (selWord != null)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
@@ -548,7 +572,6 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             ),
             child: Row(
               children: [
-                // Colored left accent strip
                 Container(
                   width: 4,
                   height: 52,
@@ -569,7 +592,7 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${w.num}${w.across ? 'A' : 'D'}',
+                    '${selWord.num}${selWord.across ? 'A' : 'D'}',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -580,7 +603,7 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    w.hint.isNotEmpty ? w.hint : '— — —',
+                    selWord.hint.isNotEmpty ? selWord.hint : '— — —',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -595,8 +618,8 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             ),
           ),
 
-        // ── Keyboard ──────────────────────────────────────────────────────────
-        if (w != null)
+        // ── Keyboard ────────────────────────────────────────────────────────
+        if (selWord != null)
           _CrosswordKeyboard(onLetter: _onLetter, onDelete: _onDelete),
 
         const BannerAdWidget(),
@@ -632,9 +655,12 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
             child: ElevatedButton(
               onPressed: () => _newGame(words),
               style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
               child: const Text(
                 'Täze krosword',
@@ -648,116 +674,126 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
   }
 }
 
-// ── Grid painter ───────────────────────────────────────────────────────────────
+// ── Letter cell tile (Dilbil-inspired) ─────────────────────────────────────────
 
-class _GridPainter extends CustomPainter {
-  final _Puzzle puzzle;
-  final Map<(int, int), String> guesses;
-  final Set<(int, int)> selectedCells;
-  final (int, int)? activeCell;
+class _LetterCell extends StatelessWidget {
+  final int? clueNum;
+  final String guess;
+  final String correct;
+  final bool isActive;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const _GridPainter({
-    required this.puzzle,
-    required this.guesses,
-    required this.selectedCells,
-    this.activeCell,
+  const _LetterCell({
+    required this.clueNum,
+    required this.guess,
+    required this.correct,
+    required this.isActive,
+    required this.isSelected,
+    required this.onTap,
   });
 
-  // Deep purple for black (blocked) cells — matches app primary colour family
-  static const _kBlack = Color(0xFF2A2850);
-  // Grid line colour — subtle warm grey
-  static const _kGrid = Color(0xFFD3D1C7);
-
   @override
-  void paint(Canvas canvas, Size size) {
-    const cs = _kCS;
-    final fill = Paint();
-    final stroke = Paint()
-      ..color = _kGrid
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7;
+  Widget build(BuildContext context) {
+    final isCorrect = guess.isNotEmpty && guess == correct;
 
-    for (int r = 0; r < _kGS; r++) {
-      for (int c = 0; c < _kGS; c++) {
-        final pos = (r, c);
-        final rect = Rect.fromLTWH(c * cs, r * cs, cs, cs);
+    // Colors inspired by Dilbil: warm yellows for correct, white for empty
+    Color bg;
+    Color textColor;
+    Color numColor;
+    List<BoxShadow> shadows;
 
-        if (!puzzle.letters.containsKey(pos)) {
-          fill.color = _kBlack;
-          canvas.drawRect(rect, fill);
-          continue;
-        }
-
-        final guess = guesses[pos] ?? '';
-        final correct = puzzle.letters[pos]!;
-
-        Color bg;
-        if (pos == activeCell) {
-          bg = AppColors.primary.withOpacity(0.40);
-        } else if (selectedCells.contains(pos)) {
-          bg = const Color(0xFFEEEDFE); // primaryLight
-        } else if (guess.isNotEmpty && guess == correct) {
-          bg = AppColors.successLight;
-        } else {
-          bg = Colors.white;
-        }
-
-        fill.color = bg;
-        canvas.drawRect(rect, fill);
-        canvas.drawRect(rect, stroke);
-
-        // Clue number — purple for visibility
-        final num = puzzle.numbers[pos];
-        if (num != null) {
-          _text(canvas, '$num', Offset(c * cs + 2.5, r * cs + 1.5), 9,
-              AppColors.primary, FontWeight.w700);
-        }
-
-        // Guessed letter
-        if (guess.isNotEmpty) {
-          _text(
-            canvas,
-            guess,
-            Offset(c * cs + cs / 2, r * cs + cs / 2 + 1),
-            cs * 0.50,
-            guess == correct ? AppColors.success : AppColors.textPrimary,
-            FontWeight.w800,
-            center: true,
-          );
-        }
-      }
+    if (isActive) {
+      bg = AppColors.primary;
+      textColor = Colors.white;
+      numColor = Colors.white.withOpacity(0.65);
+      shadows = [
+        BoxShadow(
+          color: AppColors.primary.withOpacity(0.45),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ];
+    } else if (isSelected) {
+      bg = const Color(0xFFEEEDFE); // light purple
+      textColor = const Color(0xFF2A2850);
+      numColor = AppColors.primary;
+      shadows = [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.12),
+          blurRadius: 3,
+          offset: const Offset(0, 1.5),
+        ),
+      ];
+    } else if (isCorrect) {
+      bg = const Color(0xFFFFF3C0); // warm yellow like Dilbil correct
+      textColor = const Color(0xFF7A5C00);
+      numColor = const Color(0xFFB88000).withOpacity(0.8);
+      shadows = [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.10),
+          blurRadius: 3,
+          offset: const Offset(0, 1.5),
+        ),
+      ];
+    } else {
+      bg = Colors.white.withOpacity(0.93);
+      textColor = const Color(0xFF2A2850);
+      numColor = AppColors.primary;
+      shadows = [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.18),
+          blurRadius: 3,
+          offset: const Offset(0, 1.5),
+        ),
+      ];
     }
 
-    // Outer border — matches the deep purple theme
-    final outerPaint = Paint()
-      ..color = _kBlack
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, _kGS * cs, _kGS * cs),
-      outerPaint,
+    const tileSize = _kCS - 4;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(7),
+          boxShadow: shadows,
+        ),
+        child: Stack(
+          children: [
+            // Clue number — top-left, clearly visible
+            if (clueNum != null)
+              Positioned(
+                left: 3,
+                top: 2,
+                child: Text(
+                  '$clueNum',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: numColor,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            // Guessed letter — centered
+            if (guess.isNotEmpty)
+              Center(
+                child: Text(
+                  guess,
+                  style: TextStyle(
+                    fontSize: tileSize * 0.52,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
-
-  void _text(Canvas canvas, String s, Offset pos, double size, Color color,
-      FontWeight weight, {bool center = false}) {
-    final tp = TextPainter(
-      text: TextSpan(
-          text: s,
-          style: TextStyle(fontSize: size, color: color, fontWeight: weight)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final p = center
-        ? Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2)
-        : pos;
-    tp.paint(canvas, p);
-  }
-
-  @override
-  bool shouldRepaint(_GridPainter old) =>
-      old.guesses != guesses ||
-      old.selectedCells != selectedCells ||
-      old.activeCell != activeCell;
 }
 
 // ── Keyboard ───────────────────────────────────────────────────────────────────
@@ -854,7 +890,17 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
           const SizedBox(height: 20),
           ElevatedButton(
-              onPressed: onRetry, child: const Text('Gaýtadan synanyş')),
+            onPressed: onRetry,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Gaýtadan synanyş',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     );
