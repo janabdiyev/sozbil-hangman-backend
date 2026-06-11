@@ -251,6 +251,7 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
   bool _complete = false;
   bool _started = false;
   bool _puzzleBuilt = false;
+  Size _viewportSize = Size.zero;
   final _transformCtrl = TransformationController();
   final _rewardedAd = RewardedAdService();
 
@@ -302,12 +303,18 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
 
   void _fitGrid() {
     if (!mounted) return;
-    final screenW = MediaQuery.of(context).size.width;
-    final scale = ((screenW - 64) / (_kGS * _kCS)).clamp(0.4, 1.2);
+    final w = _viewportSize.width > 0
+        ? _viewportSize.width
+        : MediaQuery.of(context).size.width;
+    final h = _viewportSize.height > 0 ? _viewportSize.height : 560.0;
+    // Show ~12 of 15 columns — bigger visible cells, user pans to see edges
+    final scale = (w / (12.0 * _kCS)).clamp(0.5, 1.5);
     final scaledPx = _kGS * _kCS * scale;
-    final tx = (screenW - scaledPx) / 2.0;
+    final tx = (w - scaledPx) / 2.0;
+    final rawTy = (h - scaledPx) / 2.0;
+    final ty = rawTy < 32.0 ? 32.0 : rawTy;
     _transformCtrl.value = Matrix4.identity()
-      ..translate(tx, 24.0)
+      ..translate(tx, ty)
       ..scale(scale);
   }
 
@@ -493,27 +500,32 @@ class _KroswordScreenState extends ConsumerState<KroswordScreen> {
       children: [
         // ── Grid ──────────────────────────────────────────────────────────────
         Expanded(
-          child: Container(
-            color: AppColors.background,
-            child: InteractiveViewer(
-              transformationController: _transformCtrl,
-              constrained: false,
-              minScale: 0.3,
-              maxScale: 3.0,
-              boundaryMargin: const EdgeInsets.all(double.infinity),
-              child: GestureDetector(
-                onTapUp: _onTap,
-                child: CustomPaint(
-                  size: const Size(_kGS * _kCS, _kGS * _kCS),
-                  painter: _GridPainter(
-                    puzzle: _puzzle!,
-                    guesses: Map.of(_guesses),
-                    selectedCells: w?.cells.toSet() ?? {},
-                    activeCell: ac,
+          child: LayoutBuilder(
+            builder: (_, box) {
+              _viewportSize = box.biggest;
+              return Container(
+                color: AppColors.background,
+                child: InteractiveViewer(
+                  transformationController: _transformCtrl,
+                  constrained: false,
+                  minScale: 0.3,
+                  maxScale: 3.0,
+                  boundaryMargin: const EdgeInsets.all(double.infinity),
+                  child: GestureDetector(
+                    onTapUp: _onTap,
+                    child: CustomPaint(
+                      size: const Size(_kGS * _kCS, _kGS * _kCS),
+                      painter: _GridPainter(
+                        puzzle: _puzzle!,
+                        guesses: Map.of(_guesses),
+                        selectedCells: w?.cells.toSet() ?? {},
+                        activeCell: ac,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
 

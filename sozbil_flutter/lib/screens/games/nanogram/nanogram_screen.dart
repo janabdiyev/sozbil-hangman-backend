@@ -391,7 +391,7 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: Text(
-          (!_loading && _solved && p != null) ? p.title : 'Nanogram',
+          (!_loading && p != null) ? p.title : 'Nanogram',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
               color: AppColors.textPrimary),
         ),
@@ -447,11 +447,48 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         child: Column(
           children: [
-            const Text(
-              'Bassaň dolar  •  Uzyn bassaň ✕',
-              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            // ── Instructions ───────────────────────────────────────────────────
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Nädip oýnamalı?',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Her setir we sütün üçin sanlar yzygiderli doldurylmaly öýjükleri görkezýär. '
+                    'Sanlar arasy iň az 1 boş öýjük bolmaly.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _InstructionChip(icon: '👆', label: 'Bas → doldur / boşat'),
+                      const SizedBox(width: 10),
+                      _InstructionChip(icon: '✕', label: 'Uzyn bas → belgi'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Gyzyl öýjük — ýalňyş. Dogry ýer doldurylanda öz reňkine geçer.',
+                    style: TextStyle(fontSize: 11, color: AppColors.textHint, height: 1.4),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
 
             Center(
               child: SizedBox(
@@ -628,6 +665,38 @@ class _NanogramScreenState extends ConsumerState<NanogramScreen> {
       child: Text(label,
           style: TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+    );
+  }
+}
+
+// ── Instruction chip ──────────────────────────────────────────────────────────
+
+class _InstructionChip extends StatelessWidget {
+  final String icon;
+  final String label;
+  const _InstructionChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary)),
+        ],
+      ),
     );
   }
 }
