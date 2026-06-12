@@ -32,10 +32,9 @@ urlpatterns = [
     path('', include('hangman.urls')),
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+# Serve uploaded media files (puzzle images, logos) — always enabled.
+# WhiteNoise only covers static files; media must be served by Django directly.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Customize admin site
 admin.site.site_header = "Hangman Game Admin"
