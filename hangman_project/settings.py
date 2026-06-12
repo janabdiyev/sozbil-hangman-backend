@@ -57,8 +57,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hangman_project.wsgi.application'
 
-# Database — Supabase PostgreSQL via DATABASE_URL env var, SQLite fallback for local dev
+# Database — persistent SQLite on Render disk via DB_PATH env var, local SQLite fallback
 DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_PATH = os.environ.get('DB_PATH')
 
 if DATABASE_URL:
     DATABASES = {
@@ -68,7 +69,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': DB_PATH if DB_PATH else str(BASE_DIR / 'db.sqlite3'),
         }
     }
 
@@ -89,7 +90,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
