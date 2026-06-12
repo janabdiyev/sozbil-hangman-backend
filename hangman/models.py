@@ -29,15 +29,15 @@ class HangmanWord(models.Model):
 
 
 class PuzzleImage(models.Model):
+    # All image-based games (Puzzle, Süýşürme) use the unified value 'puzzle'.
+    # Flutter always calls GET /api/puzzles/puzzle/ for both screens.
     GAME_TYPE_CHOICES = [
-        ('jigsaw', 'Puzzle (Jigsaw)'),
-        ('sliding', 'Süýşürme (Sliding)'),
-        ('memory', 'Ýatkeşlik (Memory)'),
+        ('puzzle', 'Puzzle / Süýşürme'),
     ]
 
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to='puzzle_images/')
-    game_type = models.CharField(max_length=20, choices=GAME_TYPE_CHOICES)
+    game_type = models.CharField(max_length=20, choices=GAME_TYPE_CHOICES, default='puzzle')
     difficulty = models.CharField(
         max_length=10,
         choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')],
