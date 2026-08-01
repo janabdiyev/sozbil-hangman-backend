@@ -8,14 +8,14 @@ from .models import (
 
 @admin.register(HangmanWord)
 class HangmanWordAdmin(admin.ModelAdmin):
-    list_display = ['word', 'difficulty', 'hint_preview', 'is_active', 'created_at']
-    list_filter = ['difficulty', 'is_active']
+    list_display = ['word', 'language', 'difficulty', 'hint_preview', 'is_active', 'created_at']
+    list_filter = ['language', 'difficulty', 'is_active']
     search_fields = ['word', 'hint']
-    ordering = ['word']
+    ordering = ['language', 'word']
     list_editable = ['difficulty', 'is_active']
 
     fieldsets = (
-        ('Word', {'fields': ('word', 'hint')}),
+        ('Word', {'fields': ('word', 'hint', 'language')}),
         ('Settings', {'fields': ('difficulty', 'is_active')}),
     )
 

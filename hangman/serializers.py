@@ -8,7 +8,7 @@ from .models import (
 class WordSerializer(serializers.ModelSerializer):
     class Meta:
         model = HangmanWord
-        fields = ['id', 'word', 'hint', 'difficulty']
+        fields = ['id', 'word', 'hint', 'difficulty', 'language']
 
 
 class PuzzleImageSerializer(serializers.ModelSerializer):
@@ -63,10 +63,10 @@ class PlayerSerializer(serializers.ModelSerializer):
         model = Player
         fields = [
             'uuid', 'display_name', 'location', 'avatar_key', 'avatar_emoji',
-            'xp', 'level', 'level_display', 'streak_days', 'longest_streak',
+            'xp', 'coins', 'level', 'level_display', 'streak_days', 'longest_streak',
             'last_active', 'created_at', 'achievements'
         ]
-        read_only_fields = ['uuid', 'xp', 'level', 'streak_days', 'longest_streak', 'created_at']
+        read_only_fields = ['uuid', 'xp', 'coins', 'level', 'streak_days', 'longest_streak', 'created_at']
 
     def get_level_display(self, obj):
         return dict(Player.LEVEL_CHOICES).get(obj.level, obj.level)
@@ -97,7 +97,10 @@ class GameSessionCreateSerializer(serializers.Serializer):
     game_type = serializers.ChoiceField(choices=GameSession.GAME_TYPE_CHOICES)
     word_id = serializers.IntegerField(required=False, allow_null=True)
     won = serializers.BooleanField()
-    wrong_guesses = serializers.IntegerField(min_value=0, max_value=6)
+    # No upper cap: non-hangman games (Puzzle swaps, Ýatkeşlik attempts, Mina, etc.)
+    # legitimately report far more than 6 "wrong" moves. A max_value=6 here used to
+    # reject those submissions with HTTP 400, so they silently awarded no XP/coins.
+    wrong_guesses = serializers.IntegerField(min_value=0)
 
 
 class LeaderboardEntrySerializer(serializers.Serializer):

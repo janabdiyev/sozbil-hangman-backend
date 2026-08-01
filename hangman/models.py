@@ -9,9 +9,30 @@ class HangmanWord(models.Model):
         ('hard', 'Hard'),
     ]
 
+    # 6-language rollout (2026-07): Turkmen is the original/default language — every
+    # word seeded before this field existed is 'tk' (see migration 0009). English/
+    # Russian/Turkish word pools were added via migrations 0010/0011/0012, and
+    # Azerbaijani/Uzbek were added via 0014/0015 (0013 just widened this field's
+    # choices). Filtered via ?lang= on /api/word/ and /api/words/ (defaults to 'tk'
+    # when omitted, so the legacy Android app and Söz Zynjyry — which don't pass this
+    # param — keep seeing exactly the Turkmen words they always have; Krosword now
+    # passes a real value too, see krosword_screen.dart).
+    LANGUAGE_CHOICES = [
+        ('tk', 'Turkmen'),
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('tr', 'Turkish'),
+        ('az', 'Azerbaijani'),
+        ('uz', 'Uzbek'),
+    ]
+
     word = models.CharField(max_length=100, help_text='Word to guess (uppercase)')
     hint = models.CharField(max_length=200, blank=True)
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='medium')
+    language = models.CharField(
+        max_length=5, choices=LANGUAGE_CHOICES, default='tk', db_index=True,
+        help_text='UI language this word belongs to',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -99,6 +120,7 @@ class Player(models.Model):
     location = models.CharField(max_length=100, blank=True, help_text='City, country — freetext')
     avatar_key = models.CharField(max_length=20, choices=AVATAR_CHOICES, default='eagle')
     xp = models.IntegerField(default=0)
+    coins = models.IntegerField(default=0)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='baslangyc')
     streak_days = models.IntegerField(default=0)
     longest_streak = models.IntegerField(default=0)
@@ -143,6 +165,8 @@ class GameSession(models.Model):
         ('zehin', 'Zehin Oýunlary'),
         ('puzzle', 'Puzzle'),
         ('soz_zynjyry', 'Söz Zynjyry'),
+        ('mina', 'Mina Oýny'),
+        ('smash_rings', 'Şar Oýny'),
     ]
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='sessions')

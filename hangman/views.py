@@ -11,6 +11,9 @@ import random
 import os
 from datetime import date, timedelta
 
+# Group chat keeps only the most recent N messages; older ones are pruned on send.
+CHAT_HISTORY_LIMIT = 40
+
 from .models import (
     HangmanWord, Player, GameSession, DailyWord,
     PuzzleImage, ExternalApp, Achievement, PlayerAchievement, ChatMessage
@@ -70,8 +73,19 @@ def index(request):
 
 @api_view(['GET'])
 def api_random_word(request):
-    """Legacy endpoint — kept for existing Android app compatibility."""
-    words = list(HangmanWord.objects.filter(is_active=True).values('word', 'hint', 'difficulty'))
+    """Legacy endpoint — kept for existing Android app compatibility.
+
+    ?lang= is optional and defaults to 'tk' — the legacy Android app and any
+    older Flutter build never send it, so they keep getting exactly the
+    Turkmen words they always have. Jellad (hangman) is the only screen that
+    currently sends a real value here (see the 4-language rollout note on
+    HangmanWord.language in models.py).
+    """
+    lang = request.query_params.get('lang', 'tk')
+    words = list(
+        HangmanWord.objects.filter(is_active=True, language=lang)
+        .values('word', 'hint', 'difficulty')
+    )
     if not words:
         return Response({'error': 'No words available'}, status=status.HTTP_404_NOT_FOUND)
     return Response(random.choice(words))
@@ -79,8 +93,14 @@ def api_random_word(request):
 
 @api_view(['GET'])
 def api_all_words(request):
-    """All active words — used by crossword generator on client."""
-    words = HangmanWord.objects.filter(is_active=True)
+    """All active words — used by crossword generator on client.
+
+    ?lang= defaults to 'tk' for the same backward-compatibility reason as
+    api_random_word above — Krosword and Söz Zynjyry don't pass this param
+    and must keep seeing only the Turkmen pool.
+    """
+    lang = request.query_params.get('lang', 'tk')
+    words = HangmanWord.objects.filter(is_active=True, language=lang)
     serializer = WordSerializer(words, many=True)
     return Response(serializer.data)
 
@@ -157,6 +177,8 @@ def api_submit_score(request):
 
     score = GameSession.calculate_score(data['won'], data['wrong_guesses'], difficulty)
     xp_gained = score // 10
+    # Coins reward: a win is worth roughly a fifth of its score in coins (min 1).
+    coins_gained = max(1, score // 5) if data['won'] else 0
 
     with transaction.atomic():
         session = GameSession.objects.create(
@@ -169,6 +191,7 @@ def api_submit_score(request):
         )
 
         player.xp += xp_gained
+        player.coins += coins_gained
         today = date.today()
 
         if player.last_streak_date == today - timedelta(days=1):
@@ -192,6 +215,8 @@ def api_submit_score(request):
         'score': score,
         'xp_gained': xp_gained,
         'total_xp': player.xp,
+        'coins_gained': coins_gained,
+        'total_coins': player.coins,
         'level': player.level,
         'streak_days': player.streak_days,
     }, status=status.HTTP_201_CREATED)
@@ -312,12 +337,12 @@ def api_stats(request):
 @api_view(['GET', 'POST'])
 def api_chat(request):
     if request.method == 'GET':
-        # Return latest 60 messages, oldest first for display
+        # Return latest 40 messages, oldest first for display
         before_id = request.query_params.get('before_id')
         qs = ChatMessage.objects.select_related('player')
         if before_id:
             qs = qs.filter(id__lt=before_id)
-        messages = list(qs[:60])
+        messages = list(qs[:CHAT_HISTORY_LIMIT])
         messages.reverse()
         serializer = ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
@@ -334,6 +359,14 @@ def api_chat(request):
         return Response({'error': 'Player not found'}, status=status.HTTP_404_NOT_FOUND)
 
     msg = ChatMessage.objects.create(player=player, message=data['message'].strip())
+
+    # Keep only the most recent CHAT_HISTORY_LIMIT messages; delete older ones.
+    keep_ids = list(
+        ChatMessage.objects.order_by('-created_at', '-id')
+        .values_list('id', flat=True)[:CHAT_HISTORY_LIMIT]
+    )
+    ChatMessage.objects.exclude(id__in=keep_ids).delete()
+
     return Response(ChatMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
 
 
