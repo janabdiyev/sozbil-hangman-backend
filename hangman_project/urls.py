@@ -1,7 +1,8 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve
+import re
 from django.http import HttpResponse
 import os
 
@@ -34,7 +35,12 @@ urlpatterns = [
 
 # Serve uploaded media files (puzzle images, logos) — always enabled.
 # WhiteNoise only covers static files; media must be served by Django directly.
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# static() silently returns nothing when DEBUG is False, so the route is
+# registered explicitly to keep puzzle images and logos working in production.
+urlpatterns += [
+    re_path(r'^%s(?P<path>.*)$' % re.escape(settings.MEDIA_URL.lstrip('/')),
+            serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
 # Customize admin site
 admin.site.site_header = "Hangman Game Admin"

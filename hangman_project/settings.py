@@ -110,6 +110,9 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    # Render terminates HTTPS at its proxy and forwards plain HTTP. Without
+    # this, SECURE_SSL_REDIRECT sees every request as HTTP and loops forever.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     ALLOWED_HOSTS = [
         os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'localhost'),
     ]
