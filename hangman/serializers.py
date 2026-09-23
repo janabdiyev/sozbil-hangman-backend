@@ -62,7 +62,7 @@ class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = [
-            'uuid', 'display_name', 'location', 'avatar_key', 'avatar_emoji',
+            'uuid', 'display_name', 'location', 'country_code', 'avatar_key', 'avatar_emoji',
             'xp', 'coins', 'level', 'level_display', 'streak_days', 'longest_streak',
             'last_active', 'created_at', 'achievements'
         ]
@@ -75,10 +75,19 @@ class PlayerSerializer(serializers.ModelSerializer):
         return dict(Player.AVATAR_CHOICES).get(obj.avatar_key, '🦅')
 
 
-class PlayerCreateSerializer(serializers.ModelSerializer):
+class CountryValidationMixin:
+    def validate_country_code(self, value):
+        from .countries import COUNTRIES
+        value = value.upper()
+        if value not in COUNTRIES:
+            raise serializers.ValidationError('Choose a country from the list.')
+        return value
+
+
+class PlayerCreateSerializer(CountryValidationMixin, serializers.ModelSerializer):
     class Meta:
         model = Player
-        fields = ['uuid', 'display_name', 'location', 'avatar_key']
+        fields = ['uuid', 'display_name', 'location', 'country_code', 'avatar_key']
 
     def validate_uuid(self, value):
         if Player.objects.filter(uuid=value).exists():
@@ -86,10 +95,10 @@ class PlayerCreateSerializer(serializers.ModelSerializer):
         return value
 
 
-class PlayerUpdateSerializer(serializers.ModelSerializer):
+class PlayerUpdateSerializer(CountryValidationMixin, serializers.ModelSerializer):
     class Meta:
         model = Player
-        fields = ['display_name', 'location', 'avatar_key']
+        fields = ['display_name', 'location', 'country_code', 'avatar_key']
 
 
 class GameSessionCreateSerializer(serializers.Serializer):
@@ -125,13 +134,19 @@ class DailyWordSerializer(serializers.ModelSerializer):
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
+    is_me = serializers.SerializerMethodField()
+
+    def get_is_me(self, obj):
+        return obj.player_id == self.context.get('player_id')
+
     display_name = serializers.CharField(source='player.display_name', read_only=True)
     avatar_key = serializers.CharField(source='player.avatar_key', read_only=True)
     avatar_emoji = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatMessage
-        fields = ['id', 'display_name', 'avatar_key', 'avatar_emoji', 'message', 'created_at']
+        fields = ['id', 'display_name', 'avatar_key', 'avatar_emoji', 'message',
+                   'created_at', 'country_code', 'is_me']
 
     def get_avatar_emoji(self, obj):
         return dict(Player.AVATAR_CHOICES).get(obj.player.avatar_key, '🦅')

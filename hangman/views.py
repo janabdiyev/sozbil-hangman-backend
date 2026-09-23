@@ -54,7 +54,7 @@ def index(request):
         <li><code>GET  /api/player/&lt;uuid&gt;/</code> — Player profile</li>
         <li><code>PUT  /api/player/&lt;uuid&gt;/</code> — Update player</li>
         <li><code>POST /api/score/</code> — Submit game result</li>
-        <li><code>GET  /api/leaderboard/</code> — Global leaderboard</li>
+        <li><code>GET  /api/leaderboard/</code> — Weekly top 10</li>
         <li><code>GET  /api/leaderboard/?filter=weekly</code> — Weekly leaderboard</li>
         <li><code>GET  /api/puzzles/&lt;game_type&gt;/</code> — Puzzle images</li>
         <li><code>GET  /api/apps/</code> — External apps (Miclab, Dilbil)</li>
@@ -146,6 +146,11 @@ def api_player_detail(request, player_uuid):
     if request.method == 'GET':
         return Response(PlayerSerializer(player).data)
 
+    from .platform import require_player
+    from rest_framework.exceptions import PermissionDenied
+    if player.platform_token_hash or 'country_code' in request.data:
+        if require_player(request).pk != player.pk:
+            raise PermissionDenied()
     serializer = PlayerUpdateSerializer(player, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -181,6 +186,9 @@ def api_submit_score(request):
     coins_gained = max(1, score // 5) if data['won'] else 0
 
     with transaction.atomic():
+        from .platform import ensure_periods
+        player = Player.objects.select_for_update().get(pk=player.pk)
+        ensure_periods(lock=True)
         session = GameSession.objects.create(
             player=player,
             game_type=data['game_type'],
@@ -256,42 +264,8 @@ def _check_and_award_achievements(player):
 
 @api_view(['GET'])
 def api_leaderboard(request):
-    filter_type = request.query_params.get('filter', 'alltime')
-    location = request.query_params.get('location', '')
-
-    sessions_qs = GameSession.objects.filter(won=True)
-
-    if filter_type == 'weekly':
-        week_start = date.today() - timedelta(days=7)
-        sessions_qs = sessions_qs.filter(played_at__date__gte=week_start)
-
-    players_qs = Player.objects.annotate(
-        total_score=Sum('sessions__score', filter=Q(sessions__in=sessions_qs), default=0),
-        games_won=Count('sessions', filter=Q(sessions__won=True, sessions__in=sessions_qs)),
-    ).order_by('-total_score')
-
-    if location:
-        players_qs = players_qs.filter(location__icontains=location)
-
-    avatar_map = dict(Player.AVATAR_CHOICES)
-    level_map = dict(Player.LEVEL_CHOICES)
-
-    results = []
-    for rank, p in enumerate(players_qs[:100], start=1):
-        results.append({
-            'rank': rank,
-            'uuid': str(p.uuid),
-            'display_name': p.display_name,
-            'location': p.location,
-            'avatar_key': p.avatar_key,
-            'avatar_emoji': avatar_map.get(p.avatar_key, '🦅'),
-            'total_score': p.total_score or 0,
-            'games_won': p.games_won or 0,
-            'streak_days': p.streak_days,
-            'level': level_map.get(p.level, p.level),
-        })
-
-    return Response(results)
+    from .platform import leaderboard_response
+    return leaderboard_response(request)
 
 
 # ── Puzzle images ─────────────────────────────────────────────────────────────
@@ -327,7 +301,6 @@ def api_achievements(request):
 def api_stats(request):
     return Response({
         'total_words': HangmanWord.objects.filter(is_active=True).count(),
-        'total_players': Player.objects.count(),
         'total_sessions': GameSession.objects.count(),
     })
 
@@ -336,38 +309,8 @@ def api_stats(request):
 
 @api_view(['GET', 'POST'])
 def api_chat(request):
-    if request.method == 'GET':
-        # Return latest 40 messages, oldest first for display
-        before_id = request.query_params.get('before_id')
-        qs = ChatMessage.objects.select_related('player')
-        if before_id:
-            qs = qs.filter(id__lt=before_id)
-        messages = list(qs[:CHAT_HISTORY_LIMIT])
-        messages.reverse()
-        serializer = ChatMessageSerializer(messages, many=True)
-        return Response(serializer.data)
-
-    # POST — send a new message
-    serializer = ChatMessageCreateSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    data = serializer.validated_data
-    try:
-        player = Player.objects.get(uuid=data['player_uuid'])
-    except Player.DoesNotExist:
-        return Response({'error': 'Player not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    msg = ChatMessage.objects.create(player=player, message=data['message'].strip())
-
-    # Keep only the most recent CHAT_HISTORY_LIMIT messages; delete older ones.
-    keep_ids = list(
-        ChatMessage.objects.order_by('-created_at', '-id')
-        .values_list('id', flat=True)[:CHAT_HISTORY_LIMIT]
-    )
-    ChatMessage.objects.exclude(id__in=keep_ids).delete()
-
-    return Response(ChatMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+    from .platform import chat_response
+    return chat_response(request)
 
 
 @require_http_methods(["GET"])
@@ -395,3 +338,18 @@ def support_page(request):
             return HttpResponse(f.read(), content_type='text/html')
     except FileNotFoundError:
         return JsonResponse({'error': 'Support page not found'}, status=404)
+
+
+@require_http_methods(["GET"])
+def delete_account_page(request):
+    # Play Store's Data Safety form requires a real, linkable URL documenting
+    # how a user can request deletion of their account/data (Can's decision,
+    # 2026-08-02 — "minimal page" option from GO_LIVE_CHECKLIST.md). Same
+    # read-a-static-file pattern as privacy_policy/support_page above.
+    project_root = settings.BASE_DIR.parent
+    file_path = os.path.join(project_root, 'delete-account.html')
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return HttpResponse(f.read(), content_type='text/html')
+    except FileNotFoundError:
+        return JsonResponse({'error': 'Delete account page not found'}, status=404)

@@ -1,9 +1,15 @@
 from django.urls import path
-from . import views
+from . import views, platform
 
 app_name = 'hangman'
 
 urlpatterns = [
+    path('api/platform/session/', platform.platform_session),
+    path('api/platform/games/', platform.game_catalog),
+    path('api/platform/launch/', platform.game_launch),
+    path('api/platform/rewards/', platform.rewards),
+    path('api/platform/rewards/<int:reward_id>/claim/', platform.claim_reward),
+    path('api/platform/rewards/<int:reward_id>/ack/', platform.ack_reward),
     path('', views.index, name='index'),
 
     # Legacy — keep for existing Android app
@@ -36,4 +42,5 @@ urlpatterns = [
     path('health/', views.health_check, name='health_check'),
     path('privacy-policy.html', views.privacy_policy, name='privacy_policy'),
     path('support.html', views.support_page, name='support_page'),
+    path('delete-account.html', views.delete_account_page, name='delete_account_page'),
 ]

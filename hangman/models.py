@@ -117,7 +117,9 @@ class Player(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     display_name = models.CharField(max_length=50)
-    location = models.CharField(max_length=100, blank=True, help_text='City, country — freetext')
+    location = models.CharField(max_length=100, blank=True, help_text='Legacy location')
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    platform_token_hash = models.CharField(max_length=128, blank=True)
     avatar_key = models.CharField(max_length=20, choices=AVATAR_CHOICES, default='eagle')
     xp = models.IntegerField(default=0)
     coins = models.IntegerField(default=0)
@@ -246,6 +248,7 @@ class PlayerAchievement(models.Model):
 
 class ChatMessage(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='chat_messages')
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
     message = models.TextField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -255,3 +258,40 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f'{self.player.display_name}: {self.message[:50]}'
+
+
+class CompetitionPeriod(models.Model):
+    kind = models.CharField(max_length=7)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
+    settled_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['kind', 'start'], name='unique_competition_period')]
+
+
+class CompetitionReward(models.Model):
+    period = models.ForeignKey(CompetitionPeriod, on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    rank = models.PositiveSmallIntegerField()
+    score = models.PositiveIntegerField()
+    gems = models.PositiveIntegerField()
+    coins = models.PositiveIntegerField()
+    claimed_at = models.DateTimeField(null=True)
+    acknowledged_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['period', 'player'], name='unique_competition_reward')]
+
+
+class GameLaunch(models.Model):
+    # A launch ID makes retries safe without changing any game implementation.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    game_type = models.CharField(max_length=24, db_index=True)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GamePlayBaseline(models.Model):
+    game_type = models.CharField(max_length=24, primary_key=True)
+    count = models.PositiveBigIntegerField(default=0)
