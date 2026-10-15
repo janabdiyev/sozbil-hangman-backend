@@ -69,9 +69,9 @@ class ExternalAppAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ['display_name', 'location', 'avatar_key', 'xp', 'level',
-                    'streak_days', 'last_active', 'created_at']
-    list_filter = ['level']
+    list_display = ['display_name', 'country_code', 'avatar_key', 'xp', 'gems', 'level',
+                    'streak_days', 'chat_hidden', 'last_active', 'created_at']
+    list_filter = ['level', 'chat_hidden']
     search_fields = ['display_name', 'location']
     ordering = ['-xp']
     readonly_fields = ['uuid', 'xp', 'level', 'streak_days', 'longest_streak',
@@ -110,8 +110,17 @@ class PlayerAchievementAdmin(admin.ModelAdmin):
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ['player', 'message_preview', 'created_at']
-    list_filter = ['created_at']
+    list_display = ['player', 'message_preview', 'country_code', 'hidden', 'report_count', 'created_at']
+    list_filter = ['hidden', 'country_code', 'created_at']
+    list_editable = ['hidden']
+    actions = ['mute_authors']
+
+    def report_count(self, obj):
+        return obj.reports.count()
+
+    @admin.action(description='Mute the authors of selected messages (hide them from chat)')
+    def mute_authors(self, request, queryset):
+        Player.objects.filter(pk__in=queryset.values('player_id')).update(chat_hidden=True)
     search_fields = ['player__display_name', 'message']
     ordering = ['-created_at']
     readonly_fields = ['player', 'message', 'created_at']
@@ -119,6 +128,45 @@ class ChatMessageAdmin(admin.ModelAdmin):
     def message_preview(self, obj):
         return obj.message[:80] + '...' if len(obj.message) > 80 else obj.message
     message_preview.short_description = 'Message'
+
+
+# ── Platform v2 (2026-10-14) ────────────────────────────────────────────────
+from .models import (Season, SeasonProgress, LiveEvent, EventClaim, ChatReport, PlayerBlock,
+                     PlayerIdentity, GemTransaction, Cosmetic, CloudSave, Challenge, Friendship)
+
+
+@admin.register(ChatReport)
+class ChatReportAdmin(admin.ModelAdmin):
+    list_display = ['message', 'reporter', 'reason', 'created_at']
+    ordering = ['-created_at']
+    raw_id_fields = ['message', 'reporter']
+
+
+@admin.register(Season)
+class SeasonAdmin(admin.ModelAdmin):
+    list_display = ['key', 'theme', 'starts_at', 'ends_at', 'xp_per_tier']
+    # Leave empty to auto-generate one season per calendar month.
+
+
+@admin.register(LiveEvent)
+class LiveEventAdmin(admin.ModelAdmin):
+    list_display = ['kind', 'game_type', 'country_code', 'xp_multiplier', 'goal_target',
+                    'reward_gems', 'starts_at', 'ends_at', 'is_active']
+    list_filter = ['kind', 'is_active']
+
+
+@admin.register(GemTransaction)
+class GemTransactionAdmin(admin.ModelAdmin):
+    list_display = ['player', 'delta', 'balance_after', 'reason', 'ref', 'created_at']
+    search_fields = ['player__display_name', 'ref']
+    ordering = ['-created_at']
+    raw_id_fields = ['player']
+
+
+for _model in (SeasonProgress, EventClaim, PlayerBlock, PlayerIdentity, Cosmetic, CloudSave,
+               Challenge, Friendship):
+    admin.site.register(_model, raw_id_fields=[f.name for f in _model._meta.fields
+                                               if f.is_relation and f.many_to_one])
 
 
 admin.site.site_header = 'Sözbil Platform Admin'

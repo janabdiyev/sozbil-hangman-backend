@@ -64,9 +64,9 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = [
             'uuid', 'display_name', 'location', 'country_code', 'avatar_key', 'avatar_emoji',
             'xp', 'coins', 'level', 'level_display', 'streak_days', 'longest_streak',
-            'last_active', 'created_at', 'achievements'
+            'last_active', 'created_at', 'achievements', 'gems', 'frame_key'
         ]
-        read_only_fields = ['uuid', 'xp', 'coins', 'level', 'streak_days', 'longest_streak', 'created_at']
+        read_only_fields = ['uuid', 'xp', 'coins', 'gems', 'frame_key', 'level', 'streak_days', 'longest_streak', 'created_at']
 
     def get_level_display(self, obj):
         return dict(Player.LEVEL_CHOICES).get(obj.level, obj.level)
@@ -141,11 +141,12 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 
     display_name = serializers.CharField(source='player.display_name', read_only=True)
     avatar_key = serializers.CharField(source='player.avatar_key', read_only=True)
+    frame_key = serializers.CharField(source='player.frame_key', read_only=True)
     avatar_emoji = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatMessage
-        fields = ['id', 'display_name', 'avatar_key', 'avatar_emoji', 'message',
+        fields = ['id', 'display_name', 'avatar_key', 'avatar_emoji', 'frame_key', 'message',
                    'created_at', 'country_code', 'is_me']
 
     def get_avatar_emoji(self, obj):

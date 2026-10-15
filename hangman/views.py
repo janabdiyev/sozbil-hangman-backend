@@ -219,6 +219,10 @@ def api_submit_score(request):
 
         _check_and_award_achievements(player)
 
+        # Platform v2: season pass XP (event multipliers applied server-side).
+        from .seasons import award_season_xp
+        season_xp_gained, season_xp = award_season_xp(player, data['game_type'], data['won'])
+
     return Response({
         'score': score,
         'xp_gained': xp_gained,
@@ -227,6 +231,8 @@ def api_submit_score(request):
         'total_coins': player.coins,
         'level': player.level,
         'streak_days': player.streak_days,
+        'season_xp_gained': season_xp_gained,
+        'season_xp': season_xp,
     }, status=status.HTTP_201_CREATED)
 
 

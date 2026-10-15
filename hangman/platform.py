@@ -42,9 +42,13 @@ def ensure_periods(now=None, lock=False):
             CompetitionPeriod.objects.select_for_update().get(pk=period.pk)
 
 
-def ranked(start, end):
-    return (GameSession.objects.filter(won=True, played_at__gte=start, played_at__lt=end)
-            .values('player_id').annotate(total_score=Sum('score'), games_won=Count('id'))
+def ranked(start, end, game=None, player_ids=None):
+    qs = GameSession.objects.filter(won=True, played_at__gte=start, played_at__lt=end)
+    if game:
+        qs = qs.filter(game_type=game)
+    if player_ids is not None:
+        qs = qs.filter(player_id__in=player_ids)
+    return (qs.values('player_id').annotate(total_score=Sum('score'), games_won=Count('id'))
             .filter(total_score__gt=0).order_by('-total_score', 'player_id')[:10])
 
 
@@ -70,8 +74,19 @@ def require_player(request):
     except (ValueError, Player.DoesNotExist):
         raise AuthenticationFailed('A registered device is required.')
     token = request.headers.get('X-Platform-Token', '')
-    if not token or not secrets.compare_digest(hashlib.sha256(token.encode()).hexdigest(), player.platform_token_hash):
+    if not token:
         raise AuthenticationFailed('Device credential is invalid.')
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    if player.platform_token_hash and secrets.compare_digest(digest, player.platform_token_hash):
+        return player
+    # Platform v2: a phone that restored this account through Apple/Google
+    # sign-in holds its own credential instead of the original device's.
+    from .models import DeviceCredential
+    cred = DeviceCredential.objects.filter(player=player, token_hash=digest).first()
+    if cred is None:
+        raise AuthenticationFailed('Device credential is invalid.')
+    if cred.last_used is None or (timezone.now() - cred.last_used).total_seconds() > 3600:
+        DeviceCredential.objects.filter(pk=cred.pk).update(last_used=timezone.now())
     return player
 
 
@@ -92,8 +107,13 @@ def platform_session(request):
         except Player.DoesNotExist:
             raise AuthenticationFailed('Register first.')
         if player.platform_token_hash:
-            if not secrets.compare_digest(hashlib.sha256(token.encode()).hexdigest(), player.platform_token_hash):
-                raise AuthenticationFailed('Device already enrolled.')
+            digest = hashlib.sha256(token.encode()).hexdigest()
+            if not secrets.compare_digest(digest, player.platform_token_hash):
+                # Platform v2: a phone restored through Apple/Google sign-in
+                # already holds a DeviceCredential for this player.
+                from .models import DeviceCredential
+                if not DeviceCredential.objects.filter(player=player, token_hash=digest).exists():
+                    raise AuthenticationFailed('Device already enrolled.')
         else:
             player.platform_token_hash = hashlib.sha256(token.encode()).hexdigest()
             player.save(update_fields=['platform_token_hash'])
@@ -105,14 +125,27 @@ def leaderboard_response(request):
     start, end = bounds(kind)
     settle()
     viewer = require_player(request) if request.headers.get('X-Platform-Token') else None
+    # Platform v2: per-game boards (?game=jellad) and a friends board
+    # (?scope=friends). Prizes are paid on the global all-games board only.
+    game = request.query_params.get('game') or None
+    if game and game not in GAME_ORDER:
+        raise ValidationError({'game': 'Unknown game.'})
+    player_ids = None
+    if request.query_params.get('scope') == 'friends':
+        if viewer is None:
+            raise AuthenticationFailed('Sign in to see friends.')
+        from .models import Friendship
+        player_ids = list(Friendship.objects.filter(player=viewer).values_list('friend_id', flat=True)) + [viewer.pk]
+    prized = game is None and player_ids is None
     results = []
-    for rank, row in enumerate(ranked(start, end), 1):
+    for rank, row in enumerate(ranked(start, end, game, player_ids), 1):
         player = Player.objects.get(pk=row['player_id'])
-        gems, coins = PRIZES.get(rank, (5, 500))
+        gems, coins = PRIZES.get(rank, (5, 500)) if prized else (0, 0)
         results.append({'rank': rank, 'display_name': player.display_name,
             'is_me': viewer is not None and player.pk == viewer.pk,
             'country_code': player.country_code, 'avatar_key': player.avatar_key,
             'avatar_emoji': dict(Player.AVATAR_CHOICES).get(player.avatar_key, '🦅'),
+            'frame_key': player.frame_key,
             'total_score': row['total_score'], 'games_won': row['games_won'],
             'prize_gems': gems, 'prize_coins': coins,
             'period_start': start, 'period_end': end})
@@ -126,7 +159,14 @@ def chat_response(request):
     cutoff = timezone.now() - timedelta(days=7)
     ChatMessage.objects.filter(created_at__lte=cutoff).delete()
     if request.method == 'GET':
-        qs = ChatMessage.objects.filter(country_code=player.country_code, created_at__gt=cutoff).select_related('player')
+        # Platform v2 moderation: hidden (reported) messages, muted players
+        # and anyone this player blocked are filtered out. Your own messages
+        # always stay visible to you.
+        from django.db.models import Q
+        from .social import blocked_ids
+        qs = (ChatMessage.objects.filter(country_code=player.country_code, created_at__gt=cutoff)
+              .filter(Q(player=player) | Q(hidden=False, player__chat_hidden=False))
+              .exclude(player_id__in=blocked_ids(player)).select_related('player'))
         before = request.query_params.get('before_id')
         if before:
             try:
@@ -139,8 +179,9 @@ def chat_response(request):
         return Response(ChatMessageSerializer(messages[::-1], many=True, context={'player_id': player.pk}).data)
     serializer = ChatMessageCreateSerializer(data={'message': request.data.get('message', ''), 'player_uuid': str(player.uuid)})
     serializer.is_valid(raise_exception=True)
+    from .social import mask_profanity
     msg = ChatMessage.objects.create(player=player, country_code=player.country_code,
-        message=serializer.validated_data['message'].strip())
+        message=mask_profanity(serializer.validated_data['message'].strip()))
     return Response(ChatMessageSerializer(msg, context={'player_id': player.pk}).data, status=201)
 
 
@@ -188,7 +229,13 @@ def claim_reward(request, reward_id):
         if reward.claimed_at is None:
             reward.claimed_at = timezone.now()
             reward.save(update_fields=['claimed_at'])
-    return Response(reward_json(reward))
+        # Platform v2: prize gems go into the server wallet (idempotent on
+        # the reward id). Coins stay Hanlyk-local and are still applied by
+        # the app. `gems_credited` tells v2 apps not to add gems locally.
+        from .accounts import grant_gems
+        locked = Player.objects.select_for_update().get(pk=player.pk)
+        grant_gems(locked, reward.gems, 'srv:prize', f'srv:prize:{reward.pk}')
+    return Response({**reward_json(reward), 'gems_credited': True})
 
 
 @api_view(['POST'])
