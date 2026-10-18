@@ -30,40 +30,21 @@ from .serializers import (
 
 @require_http_methods(["GET"])
 def index(request):
+    # 2026-10-18: no endpoint list here any more. The old page published a
+    # map of every API route to anyone who opened the domain; the app knows
+    # its endpoints and needs nothing from this page.
     html = """<!DOCTYPE html>
 <html lang="tk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sözbil Platform API</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; max-width: 700px; margin: 60px auto; padding: 20px; color: #1a1a1a; }
-        h1 { font-size: 28px; } code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
-        ul { line-height: 2; }
-    </style>
+    <title>Sözbil</title>
+    <style>body { font-family: -apple-system, sans-serif; text-align: center; margin: 80px 20px; color: #1a1a1a; }</style>
 </head>
 <body>
-    <h1>🎮 Sözbil Platform API</h1>
-    <p>Türkmen oýun platformasynyň API hyzmaty.</p>
-    <h2>Endpoints</h2>
-    <ul>
-        <li><code>GET  /api/word/</code> — Random word</li>
-        <li><code>GET  /api/words/</code> — All active words</li>
-        <li><code>GET  /api/daily/</code> — Today's daily word</li>
-        <li><code>POST /api/player/register/</code> — Register player</li>
-        <li><code>GET  /api/player/&lt;uuid&gt;/</code> — Player profile</li>
-        <li><code>PUT  /api/player/&lt;uuid&gt;/</code> — Update player</li>
-        <li><code>POST /api/score/</code> — Submit game result</li>
-        <li><code>GET  /api/leaderboard/</code> — Weekly top 10</li>
-        <li><code>GET  /api/leaderboard/?filter=weekly</code> — Weekly leaderboard</li>
-        <li><code>GET  /api/puzzles/&lt;game_type&gt;/</code> — Puzzle images</li>
-        <li><code>GET  /api/apps/</code> — External apps (Miclab, Dilbil)</li>
-        <li><code>GET  /api/achievements/</code> — All achievements</li>
-        <li><code>GET  /api/chat/</code> — Get latest messages</li>
-        <li><code>POST /api/chat/</code> — Send message</li>
-        <li><code>GET  /health/</code> — Health check</li>
-    </ul>
-    <hr><p><small>© 2026 Can Abdiyev · Sözbil</small></p>
+    <h1>Sözbil</h1>
+    <p>Türkmen oýun platformasy.</p>
+    <p><small>© 2026 Can Abdiyev</small></p>
 </body>
 </html>"""
     return HttpResponse(html, content_type='text/html')

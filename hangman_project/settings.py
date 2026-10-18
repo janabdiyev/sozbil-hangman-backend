@@ -9,7 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Off by default on Render (which always sets RENDER), so a missing DEBUG
+# variable there can never expose debug pages. Local runs and tests keep the
+# old default (on) because the non-DEBUG block below forces HTTPS.
+DEBUG = os.environ.get('DEBUG', 'False' if os.environ.get('RENDER') else 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
