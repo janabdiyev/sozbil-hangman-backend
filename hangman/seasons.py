@@ -32,7 +32,10 @@ XP_PER_TIER = 50
 
 # Rotates through games that submit scores (Bazar and Lands of Hanlyk don't).
 GAME_OF_WEEK_ROTATION = ['jellad', 'krosword', 'mina', 'yatkeslik', 'soz_zynjyry',
-                         'puzzle', 'tilki', 'zehin', 'suysurme', 'smash_rings', 'hanlyk']
+                         'puzzle', 'tilki', 'zehin', 'smash_rings', 'hanlyk',
+                         'kerpic', 'halycy']
+# 'suysurme' left the rotation 2026-10-17: the app hides it from the home grid,
+# so a game of the week pointing at it could not be played.
 
 THEME_BY_MONTH = {1: 'newyear', 3: 'nowruz', 4: 'horse', 5: 'carpet', 8: 'melon',
                   9: 'independence', 12: 'newyear'}

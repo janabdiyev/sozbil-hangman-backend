@@ -16,7 +16,7 @@ from .countries import COUNTRIES
 # Explicit release order, separate from card order and popularity.
 GAME_ORDER = ['jellad', 'soz_zynjyry', 'yatkeslik', 'krosword', 'suysurme',
               'mina', 'zehin', 'puzzle', 'smash_rings', 'hanlyk', 'tilki',
-              'lands_of_hanlyk', 'bazar']
+              'lands_of_hanlyk', 'bazar', 'kerpic', 'halycy']
 PRIZES = {1: (10, 1000), 2: (7, 700), 3: (7, 700)}
 
 

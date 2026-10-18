@@ -180,6 +180,9 @@ class GameSession(models.Model):
         # never counted for XP, streaks or the leaderboard.
         ('hanlyk', 'Hanlyk'),
         ('tilki', 'Tilki'),
+        # 2026-10-17: new games (block puzzle, carpet match-3). Migration 0018.
+        ('kerpic', 'Kerpiç'),
+        ('halycy', 'Halyçy'),
     ]
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='sessions')

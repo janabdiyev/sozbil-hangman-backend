@@ -159,6 +159,13 @@ class SeasonTests(Base):
         for game in ('hanlyk', 'tilki'):
             self.assertEqual(self.submit(p, game).status_code, 201)
 
+    def test_kerpic_and_halycy_scores_accepted(self):
+        p, c = self.enroll('A')
+        for game in ('kerpic', 'halycy'):
+            self.assertEqual(self.submit(p, game).status_code, 201)
+        order = [g['game_type'] for g in c.get('/api/platform/games/').data]
+        self.assertEqual(order[-2:], ['kerpic', 'halycy'])
+
     def test_community_goal(self):
         p, c = self.enroll('A')
         now = timezone.now()
