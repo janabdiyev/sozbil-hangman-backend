@@ -31,9 +31,11 @@ TIERS = 30
 XP_PER_TIER = 50
 
 # Rotates through games that submit scores (Bazar and Lands of Hanlyk don't).
-GAME_OF_WEEK_ROTATION = ['jellad', 'krosword', 'mina', 'yatkeslik', 'soz_zynjyry',
-                         'puzzle', 'tilki', 'zehin', 'smash_rings', 'hanlyk',
-                         'kerpic', 'halycy']
+GAME_OF_WEEK_ROTATION = ['jellad', 'yatkeslik', 'puzzle', 'tilki', 'zehin',
+                         'smash_rings', 'hanlyk', 'kerpic', 'halycy',
+                         'kukurtcop']
+# 2026-11-25: Krosword, Mina and Söz zynjyry left the rotation — the app
+# hides them now (Can: remove the least played games).
 # 'suysurme' left the rotation 2026-10-17: the app hides it from the home grid,
 # so a game of the week pointing at it could not be played.
 

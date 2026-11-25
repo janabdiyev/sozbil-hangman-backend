@@ -183,6 +183,8 @@ class GameSession(models.Model):
         # 2026-10-17: new games (block puzzle, carpet match-3). Migration 0018.
         ('kerpic', 'Kerpiç'),
         ('halycy', 'Halyçy'),
+        # 2026-11-25: Kükürtçöp (matchsticks). Migration 0019.
+        ('kukurtcop', 'Kükürtçöp'),
     ]
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='sessions')

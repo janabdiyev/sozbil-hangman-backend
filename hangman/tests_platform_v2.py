@@ -164,7 +164,11 @@ class SeasonTests(Base):
         for game in ('kerpic', 'halycy'):
             self.assertEqual(self.submit(p, game).status_code, 201)
         order = [g['game_type'] for g in c.get('/api/platform/games/').data]
-        self.assertEqual(order[-2:], ['kerpic', 'halycy'])
+        self.assertEqual(order[-4:], ['kerpic', 'halycy', 'kukurtcop', 'skyforge'])
+
+    def test_kukurtcop_scores_accepted(self):
+        p, c = self.enroll('A')
+        self.assertEqual(self.submit(p, 'kukurtcop').status_code, 201)
 
     def test_community_goal(self):
         p, c = self.enroll('A')
