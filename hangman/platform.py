@@ -20,7 +20,19 @@ GAME_ORDER = ['jellad', 'soz_zynjyry', 'yatkeslik', 'krosword', 'suysurme',
               'kukurtcop',
               # 2026-11-25: SkyForge flight sim. Launch counts only — it
               # submits no scores, so it is not in GameSession choices.
-              'skyforge']
+              'skyforge',
+              # 2026-11-27: Sideways drift game. Launch counts only, like
+              # SkyForge — no scores, not in GameSession choices.
+              'drift',
+              # 2026-11-27: Titan Siege squad-defense game. Launch counts
+              # only — no scores, not in GameSession choices.
+              'titan',
+              # 2026-11-28: Last Walker side-scroller (key "hero"; replaced
+              # Crown Cannon, which was never released). Launch counts only.
+              'hero',
+              # 2026-11-28: Topple! 3D table-clearing game. Launch counts
+              # only — no scores, not in GameSession choices.
+              'topple']
 PRIZES = {1: (10, 1000), 2: (7, 700), 3: (7, 700)}
 
 
